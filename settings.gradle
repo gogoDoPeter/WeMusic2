@@ -1,0 +1,3 @@
+rootProject.name = "WeMusic"
+include ':app'
+include ':myplayer'
