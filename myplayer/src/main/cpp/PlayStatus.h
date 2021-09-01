@@ -6,10 +6,10 @@
 #define WEMUSIC_PLAYSTATUS_H
 
 
-class PlayStatus
-{
+class PlayStatus {
 public:
-    bool exit;
+    bool exit = false;
+    bool load = true;
 
 public:
     PlayStatus();

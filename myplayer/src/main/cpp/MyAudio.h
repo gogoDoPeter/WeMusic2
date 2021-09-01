@@ -6,6 +6,7 @@
 #define WEMUSIC_MYAUDIO_H
 
 #include "SafeQueue.h"
+#include "CallJava.h"
 
 extern "C"
 {
@@ -34,6 +35,7 @@ public:
 
     int sample_rate = 0;
 
+    CallJava *callJava= nullptr;
     // 引擎接口
     SLObjectItf engineObject = NULL;
     SLEngineItf engineEngine = NULL;
@@ -51,7 +53,7 @@ public:
     SLAndroidSimpleBufferQueueItf pcmBufferQueue = NULL;
 
 public:
-    MyAudio(PlayStatus *playStatus, int sample_rate);
+    MyAudio(PlayStatus *playStatus, int sample_rate, CallJava *callJava_);
     ~MyAudio();
 
     void play();
@@ -59,6 +61,9 @@ public:
 
     void initOpenELSL();
     SLuint32 getCurrentSampleRateForOpensles(int sample_rate);
+
+    void pause();
+    void resume();
 };
 
 

@@ -18,6 +18,7 @@ public:
     JNIEnv *jniEnv=nullptr;
     jobject jobj;
     jmethodID jmid_prepared;
+    jmethodID jmid_load;
 
 public:
     CallJava(_JavaVM *javaVm, JNIEnv *env, jobject *obj);
@@ -25,6 +26,7 @@ public:
     ~CallJava();
 
     void onCallPrepared(int type);
+    void onCallLoadStatus(int type,bool load);
 };
 
 

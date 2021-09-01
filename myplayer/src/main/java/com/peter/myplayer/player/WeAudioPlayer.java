@@ -3,11 +3,13 @@ package com.peter.myplayer.player;
 import android.text.TextUtils;
 import android.util.Log;
 
+import com.peter.myplayer.listener.MyOnLoadListener;
+import com.peter.myplayer.listener.MyOnPauseResumeListener;
 import com.peter.myplayer.listener.OnPreparedListener;
 import com.peter.myplayer.utils.MyLog;
 
 public class WeAudioPlayer {
-    private static final String TAG="my_tag_"+WeAudioPlayer.class.getSimpleName();
+    private static final String TAG = "my_tag_" + WeAudioPlayer.class.getSimpleName();
 
     static {
         System.loadLibrary("native-lib2");
@@ -23,14 +25,17 @@ public class WeAudioPlayer {
 
     private String source;//数据源
     private OnPreparedListener onPreparedListener;
+    private MyOnLoadListener onLoadListener;
+    private MyOnPauseResumeListener onPauseResumeListener;
 
-    public WeAudioPlayer(){
+    public WeAudioPlayer() {
         MyLog.d("WeAudioPlayer constructor in MyLog");
-        Log.d(TAG,"WeAudioPlayer constructor in Log");
+//        Log.d(TAG, "WeAudioPlayer constructor in Log");
     }
 
     /**
      * 设置数据源
+     *
      * @param source
      */
     public void setSource(String source) {
@@ -39,18 +44,28 @@ public class WeAudioPlayer {
 
     /**
      * 设置准备接口回调
+     *
      * @param onPreparedListener
      */
-    public void setOnPreparedListener(OnPreparedListener onPreparedListener){
+    public void setOnPreparedListener(OnPreparedListener onPreparedListener) {
         this.onPreparedListener = onPreparedListener;
     }
 
-    //TODO 为什么这里要开子线程做？
-    public void prepared(){
-        if(TextUtils.isEmpty(source)){
+    public void setOnLoadListener(MyOnLoadListener onLoadListener) {
+        this.onLoadListener = onLoadListener;
+    }
+
+    public void setOnPauseResumeListener(MyOnPauseResumeListener onPauseResumeListener) {
+        this.onPauseResumeListener = onPauseResumeListener;
+    }
+
+    //TODO 为什么这里要开子线程做？  prepare将数据解封装，有延迟动作，需要放在子线程中执行
+    public void prepared() {
+        if (TextUtils.isEmpty(source)) {
             MyLog.d("data source not be empty");
             return;
         }
+        onCallLoadStatus(true);
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -59,34 +74,53 @@ public class WeAudioPlayer {
         }).start();
     }
 
-    //TODO 为什么这里要开子线程做？
-    public void start(){
-        if(TextUtils.isEmpty(source)){
+    //TODO 为什么这里要开子线程做？  start 将数据做解码，有延迟动作，需要放在子线程中执行
+    public void start() {
+        if (TextUtils.isEmpty(source)) {
             MyLog.d("data source not be empty");
             return;
         }
         new Thread(new Runnable() {
             @Override
             public void run() {
-                Log.d(TAG,"native start");
+                Log.d(TAG, "native start");
                 native_start();
             }
         }).start();
     }
 
+    public void pause() {
+        pauseNative();
+        if (onPauseResumeListener != null) {
+            onPauseResumeListener.onPause(true);
+        }
+    }
+
+    public void resume(){
+        resumeNative();
+        if(onPauseResumeListener!=null){
+            onPauseResumeListener.onPause(false);
+        }
+    }
+
+
     /**
      * c++回调java的方法
      */
-    public void onCallPrepared()
-    {
-        if(onPreparedListener != null)
-        {
+    public void onCallPrepared() {
+        if (onPreparedListener != null) {
             onPreparedListener.onPrepared();
         }
     }
 
-    public native void native_start();
+    public void onCallLoadStatus(boolean load) {
+        if (onLoadListener != null) {
+            onLoadListener.onLoad(load);
+        }
+    }
 
-    public native void native_prepared(String source);
-
+    private native void native_start();
+    private native void native_prepared(String source);
+    private native void pauseNative();
+    private native void resumeNative();
 }

@@ -16,12 +16,14 @@ import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
 
+import com.peter.myplayer.listener.MyOnLoadListener;
+import com.peter.myplayer.listener.MyOnPauseResumeListener;
 import com.peter.myplayer.listener.OnPreparedListener;
 import com.peter.myplayer.player.WeAudioPlayer;
 import com.peter.myplayer.utils.MyLog;
 
 public class MainActivity extends AppCompatActivity {
-    private static final String TAG="my_tag_"+MainActivity.class.getSimpleName();
+    private static final String TAG = "my_tag_" + MainActivity.class.getSimpleName();
     private WeAudioPlayer wePlayer;
     private static final String[] permissions = new String[]{
             Manifest.permission.INTERNET,
@@ -31,16 +33,16 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        Log.d(TAG,"onCreate +");
+        Log.d(TAG, "onCreate +");
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_main);
 
         checkPermission();
 
-        wePlayer=new WeAudioPlayer();
+        wePlayer = new WeAudioPlayer();
 
-        Log.d(TAG,"onCreate setOnPreparedListener");
+        Log.d(TAG, "onCreate setOnPreparedListener");
         wePlayer.setOnPreparedListener(new OnPreparedListener() {
             @Override
             public void onPrepared() {
@@ -49,23 +51,50 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        Log.d(TAG,"onCreate -");
+        wePlayer.setOnLoadListener(new MyOnLoadListener() {
+            @Override
+            public void onLoad(boolean load) {
+                if (load) {
+                    MyLog.d("加载中...");
+                } else {
+                    MyLog.d("播放中...");
+                }
+            }
+        });
+        wePlayer.setOnPauseResumeListener(new MyOnPauseResumeListener() {
+            @Override
+            public void onPause(boolean pause) {
+                if(pause){
+                    MyLog.d("暂停中...");
+                }else {
+                    MyLog.d("播放中...");
+                }
+            }
+        });
+        Log.d(TAG, "onCreate -");
 
     }
 
 
     public void begin(View view) {
-        Log.d(TAG,"do button +");
+        Log.d(TAG, "do button +");
         wePlayer.setSource("http://mpge.5nd.com/2015/2015-11-26/69708/1.mp3");
 
 //        wePlayer.setSource("/mnt/sdcard/1mydream.mp3");
 
         wePlayer.prepared();
-        Log.d(TAG,"do button -");
+        Log.d(TAG, "do button -");
     }
 
+    public void pause(View view) {
+        wePlayer.pause();
+    }
+
+    public void resume(View view) {
+        wePlayer.resume();
+    }
     private void checkPermission() {
-        Log.d(TAG,"checkPermission +");
+        Log.d(TAG, "checkPermission +");
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             for (String permission : permissions) {
                 if (ContextCompat.checkSelfPermission(this, permission) != PackageManager.PERMISSION_GRANTED) {
@@ -74,7 +103,7 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         }
-        Log.d(TAG,"checkPermission -");
+        Log.d(TAG, "checkPermission -");
     }
 
     @Override
@@ -101,4 +130,5 @@ public class MainActivity extends AppCompatActivity {
             checkPermission();
         }
     }
+
 }
