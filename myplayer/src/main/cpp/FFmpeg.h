@@ -31,6 +31,11 @@ public:
     bool exitFfmpeg = false;
 
     char errMsg[40];
+
+    int duration = 0;
+    pthread_mutex_t seek_mutex;
+
+    pthread_t startThread;
 public:
     FFmpeg(const char *source, CallJava *callJava_, PlayStatus *playStatus_);
 
@@ -45,6 +50,8 @@ public:
     void resume();
 
     void release();
+
+    void seek(int64_t seconds);
 };
 
 

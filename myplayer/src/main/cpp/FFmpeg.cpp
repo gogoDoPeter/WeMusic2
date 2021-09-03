@@ -17,10 +17,12 @@ FFmpeg::FFmpeg(const char *source, CallJava *callJava_, PlayStatus *playStatus_)
     exitFfmpeg = false;
     memset(errMsg, 0, sizeof(errMsg));
     pthread_mutex_init(&init_mutex, nullptr);
+    pthread_mutex_init(&seek_mutex, nullptr);
 }
 
 FFmpeg::~FFmpeg() {
     pthread_mutex_destroy(&init_mutex);
+    pthread_mutex_destroy((&seek_mutex));
 }
 
 void *decodeFFmpegRun(void *data) {
@@ -100,6 +102,7 @@ void FFmpeg::decodeFFmpegThread() {
                 audio->avCodecParameters = pFormatCtx->streams[i]->codecpar;
                 audio->duration = pFormatCtx->duration / AV_TIME_BASE;
                 audio->time_base = pFormatCtx->streams[i]->time_base;
+                duration = audio->duration;
             }
         }
     }
@@ -141,7 +144,7 @@ void FFmpeg::decodeFFmpegThread() {
         if (callJava) {
             sprintf(errMsg, "can not fill decodecct");
             callJava->onCallErrorMsg(CHILD_THREAD,
-                                     ERROR_CODE_AVCODEC_PARAM_TO_CONTEXT,errMsg);
+                                     ERROR_CODE_AVCODEC_PARAM_TO_CONTEXT, errMsg);
         }
         exitFfmpeg = true;
         pthread_mutex_unlock(&init_mutex);
@@ -187,6 +190,14 @@ void FFmpeg::start() {
     audio->play();
 
     while (playStatus != NULL && !playStatus->exit) {
+        if (playStatus->seekStatus) {
+            continue;
+        }
+        //TODO why?
+        if (audio->queue->getQueueSize() > 40) {
+            continue;
+        }
+
         AVPacket *avPacket = av_packet_alloc();
         if (av_read_frame(pFormatCtx, avPacket) == 0) {
             if (avPacket->stream_index == audio->streamIndex)//index 0 is Audio, 1 is video
@@ -203,7 +214,7 @@ void FFmpeg::start() {
                 if (audio->queue->getQueueSize() > 0) {
                     continue;
                 } else {
-                    playStatus->exit = true;
+//                    playStatus->exit = true;  //TODO save this will crash
                     break;
                 }
             }
@@ -211,6 +222,9 @@ void FFmpeg::start() {
         }
     }
     exitFfmpeg = true;
+    if (callJava != nullptr) {
+        callJava->onCallComplete(CHILD_THREAD);
+    }
     //模拟出队
 /*    while (audio->queue->getQueueSize() > 0)
     {
@@ -299,4 +313,23 @@ void FFmpeg::release() {
         playStatus = NULL;
     }
     pthread_mutex_unlock(&init_mutex);
+}
+
+void FFmpeg::seek(int64_t seconds) {
+    if (duration <= 0) {
+        return;
+    }
+    if (seconds >= 0 && seconds <= duration) {
+        if (audio != NULL) {
+            playStatus->seekStatus = true;
+            audio->queue->clearAvpacket();
+            audio->clock = 0;
+            audio->last_time = 0;
+            pthread_mutex_lock(&seek_mutex);
+            int64_t realTime = seconds * AV_TIME_BASE;
+            avformat_seek_file(pFormatCtx, -1, INT64_MIN, realTime, INT64_MAX, 0);
+            pthread_mutex_unlock(&seek_mutex);
+            playStatus->seekStatus = false;
+        }
+    }
 }

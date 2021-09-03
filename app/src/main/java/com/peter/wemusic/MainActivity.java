@@ -19,6 +19,7 @@ import android.view.View;
 import android.widget.TextView;
 
 import com.peter.myplayer.bean.TimeInfoBean;
+import com.peter.myplayer.listener.MyOnCompleteListener;
 import com.peter.myplayer.listener.MyOnErrorListener;
 import com.peter.myplayer.listener.MyOnLoadListener;
 import com.peter.myplayer.listener.MyOnPauseResumeListener;
@@ -98,14 +99,20 @@ public class MainActivity extends AppCompatActivity {
                 Log.d(TAG,"code=" + code + ", error:" + msg);
             }
         });
-        Log.d(TAG, "onCreate -");
 
+        wePlayer.setOnCompleteListener(new MyOnCompleteListener() {
+            @Override
+            public void onComplete() {
+                Log.d(TAG, "播放完成了");
+            }
+        });
+        Log.d(TAG, "onCreate -");
     }
 
 
     public void begin(View view) {
         Log.d(TAG, "do button +");
-        wePlayer.setSource("http://mpge.5nd.com/2015/2015-11-26/69708/12.mp3");
+        wePlayer.setSource("http://mpge.5nd.com/2015/2015-11-26/69708/1.mp3");
 
 //        wePlayer.setSource("/mnt/sdcard/1mydream.mp3");
 
@@ -173,5 +180,9 @@ public class MainActivity extends AppCompatActivity {
 
     public void stop(View view) {
         wePlayer.stop();
+    }
+
+    public void seek(View view) {
+        wePlayer.seek(215);
     }
 }

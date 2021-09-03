@@ -4,6 +4,7 @@ import android.text.TextUtils;
 import android.util.Log;
 
 import com.peter.myplayer.bean.TimeInfoBean;
+import com.peter.myplayer.listener.MyOnCompleteListener;
 import com.peter.myplayer.listener.MyOnErrorListener;
 import com.peter.myplayer.listener.MyOnLoadListener;
 import com.peter.myplayer.listener.MyOnPauseResumeListener;
@@ -32,6 +33,7 @@ public class WeAudioPlayer {
     private MyOnPauseResumeListener onPauseResumeListener;
     private MyOnTimeInfoListener onTimeInfoListener;
     private MyOnErrorListener onErrorListener;
+    private MyOnCompleteListener onCompleteListener;
     private static TimeInfoBean timeInfoBean;
 
     public WeAudioPlayer() {
@@ -73,6 +75,10 @@ public class WeAudioPlayer {
         this.onErrorListener = onErrorListener;
     }
 
+    public void setOnCompleteListener(MyOnCompleteListener onCompleteListener) {
+        this.onCompleteListener = onCompleteListener;
+    }
+
     //TODO 为什么这里要开子线程做？  prepare将数据解封装，有延迟动作，需要放在子线程中执行
     public void prepared() {
         if (TextUtils.isEmpty(source)) {
@@ -104,6 +110,7 @@ public class WeAudioPlayer {
     }
 
     public void stop() {
+        timeInfoBean=null;
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -111,6 +118,11 @@ public class WeAudioPlayer {
             }
         }).start();
     }
+
+    public void seek(int second) {
+        NativeSeek(second);
+    }
+
 
     public void pause() {
         pauseNative();
@@ -154,8 +166,17 @@ public class WeAudioPlayer {
     }
 
     public void onCallError(int code, String msg) {
+
         if (onErrorListener != null) {
+            stop();
             onErrorListener.onError(code, msg);
+        }
+    }
+
+    public void onCallComplete(){
+        if(onCompleteListener != null){
+            stop();
+            onCompleteListener.onComplete();
         }
     }
 
@@ -168,4 +189,6 @@ public class WeAudioPlayer {
     private native void resumeNative();
 
     private native void nativeStop();
+
+    private native void NativeSeek(int seconds);
 }
