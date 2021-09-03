@@ -14,6 +14,7 @@ public:
 public:
     PlayStatus();
 
+    ~PlayStatus();
 };
 
 

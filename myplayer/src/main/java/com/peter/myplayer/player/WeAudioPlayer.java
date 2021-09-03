@@ -3,8 +3,11 @@ package com.peter.myplayer.player;
 import android.text.TextUtils;
 import android.util.Log;
 
+import com.peter.myplayer.bean.TimeInfoBean;
+import com.peter.myplayer.listener.MyOnErrorListener;
 import com.peter.myplayer.listener.MyOnLoadListener;
 import com.peter.myplayer.listener.MyOnPauseResumeListener;
+import com.peter.myplayer.listener.MyOnTimeInfoListener;
 import com.peter.myplayer.listener.OnPreparedListener;
 import com.peter.myplayer.utils.MyLog;
 
@@ -27,6 +30,9 @@ public class WeAudioPlayer {
     private OnPreparedListener onPreparedListener;
     private MyOnLoadListener onLoadListener;
     private MyOnPauseResumeListener onPauseResumeListener;
+    private MyOnTimeInfoListener onTimeInfoListener;
+    private MyOnErrorListener onErrorListener;
+    private static TimeInfoBean timeInfoBean;
 
     public WeAudioPlayer() {
         MyLog.d("WeAudioPlayer constructor in MyLog");
@@ -59,6 +65,14 @@ public class WeAudioPlayer {
         this.onPauseResumeListener = onPauseResumeListener;
     }
 
+    public void setOnTimeInfoListener(MyOnTimeInfoListener onTimeInfoListener) {
+        this.onTimeInfoListener = onTimeInfoListener;
+    }
+
+    public void setOnErrorListener(MyOnErrorListener onErrorListener) {
+        this.onErrorListener = onErrorListener;
+    }
+
     //TODO 为什么这里要开子线程做？  prepare将数据解封装，有延迟动作，需要放在子线程中执行
     public void prepared() {
         if (TextUtils.isEmpty(source)) {
@@ -89,6 +103,15 @@ public class WeAudioPlayer {
         }).start();
     }
 
+    public void stop() {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                nativeStop();
+            }
+        }).start();
+    }
+
     public void pause() {
         pauseNative();
         if (onPauseResumeListener != null) {
@@ -96,9 +119,9 @@ public class WeAudioPlayer {
         }
     }
 
-    public void resume(){
+    public void resume() {
         resumeNative();
-        if(onPauseResumeListener!=null){
+        if (onPauseResumeListener != null) {
             onPauseResumeListener.onPause(false);
         }
     }
@@ -119,8 +142,30 @@ public class WeAudioPlayer {
         }
     }
 
+    public void onCallTimeInfo(int currentTime, int totalTime) {
+        if (onTimeInfoListener != null) {
+            if (timeInfoBean == null) {
+                timeInfoBean = new TimeInfoBean();
+            }
+            timeInfoBean.setCurrentTime(currentTime);
+            timeInfoBean.setTotalTime(totalTime);
+            onTimeInfoListener.onTimeInfo(timeInfoBean);
+        }
+    }
+
+    public void onCallError(int code, String msg) {
+        if (onErrorListener != null) {
+            onErrorListener.onError(code, msg);
+        }
+    }
+
     private native void native_start();
+
     private native void native_prepared(String source);
+
     private native void pauseNative();
+
     private native void resumeNative();
+
+    private native void nativeStop();
 }

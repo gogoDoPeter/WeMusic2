@@ -19,7 +19,8 @@ public:
     jobject jobj;
     jmethodID jmid_prepared;
     jmethodID jmid_load;
-
+    jmethodID jmid_timeinfo;
+    jmethodID jmid_errormsg;
 public:
     CallJava(_JavaVM *javaVm, JNIEnv *env, jobject *obj);
 
@@ -27,6 +28,8 @@ public:
 
     void onCallPrepared(int type);
     void onCallLoadStatus(int type,bool load);
+    void onCallTimeInfo(int type,int currentTime,int totalTime);
+    void onCallErrorMsg(int type, int code, char *msg);
 };
 
 

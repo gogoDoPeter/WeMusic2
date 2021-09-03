@@ -5,6 +5,8 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Message;
 import android.provider.Settings;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -16,11 +18,15 @@ import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
 
+import com.peter.myplayer.bean.TimeInfoBean;
+import com.peter.myplayer.listener.MyOnErrorListener;
 import com.peter.myplayer.listener.MyOnLoadListener;
 import com.peter.myplayer.listener.MyOnPauseResumeListener;
+import com.peter.myplayer.listener.MyOnTimeInfoListener;
 import com.peter.myplayer.listener.OnPreparedListener;
 import com.peter.myplayer.player.WeAudioPlayer;
 import com.peter.myplayer.utils.MyLog;
+import com.peter.myplayer.utils.MyTimeUtil;
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "my_tag_" + MainActivity.class.getSimpleName();
@@ -30,6 +36,7 @@ public class MainActivity extends AppCompatActivity {
             Manifest.permission.READ_EXTERNAL_STORAGE,
             Manifest.permission.WRITE_EXTERNAL_STORAGE
     };
+    private TextView tv_time;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -37,6 +44,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_main);
+        tv_time = ((TextView) findViewById(R.id.tv_time));
 
         checkPermission();
 
@@ -64,11 +72,30 @@ public class MainActivity extends AppCompatActivity {
         wePlayer.setOnPauseResumeListener(new MyOnPauseResumeListener() {
             @Override
             public void onPause(boolean pause) {
-                if(pause){
+                if (pause) {
                     MyLog.d("暂停中...");
-                }else {
+                } else {
                     MyLog.d("播放中...");
                 }
+            }
+        });
+
+        wePlayer.setOnTimeInfoListener(new MyOnTimeInfoListener() {
+            @Override
+            public void onTimeInfo(TimeInfoBean timeInfoBean) {
+//                MyLog.d(timeInfoBean.toString());
+                Message msg = Message.obtain();
+                msg.what = 1;
+                msg.obj = timeInfoBean;
+                handler.sendMessage(msg);
+
+            }
+        });
+
+        wePlayer.setOnErrorListener(new MyOnErrorListener() {
+            @Override
+            public void onError(int code, String msg) {
+                Log.d(TAG,"code=" + code + ", error:" + msg);
             }
         });
         Log.d(TAG, "onCreate -");
@@ -78,7 +105,7 @@ public class MainActivity extends AppCompatActivity {
 
     public void begin(View view) {
         Log.d(TAG, "do button +");
-        wePlayer.setSource("http://mpge.5nd.com/2015/2015-11-26/69708/1.mp3");
+        wePlayer.setSource("http://mpge.5nd.com/2015/2015-11-26/69708/12.mp3");
 
 //        wePlayer.setSource("/mnt/sdcard/1mydream.mp3");
 
@@ -93,6 +120,19 @@ public class MainActivity extends AppCompatActivity {
     public void resume(View view) {
         wePlayer.resume();
     }
+
+    Handler handler = new Handler() {
+        @Override
+        public void handleMessage(@NonNull Message msg) {
+            super.handleMessage(msg);
+            if (msg.what == 1) {
+                TimeInfoBean timeBean = (TimeInfoBean) msg.obj;
+                tv_time.setText(MyTimeUtil.secdsToDateFormat(timeBean.getTotalTime(), timeBean.getTotalTime())
+                        + "/" + MyTimeUtil.secdsToDateFormat(timeBean.getCurrentTime(), timeBean.getTotalTime()));
+            }
+        }
+    };
+
     private void checkPermission() {
         Log.d(TAG, "checkPermission +");
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -131,4 +171,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    public void stop(View view) {
+        wePlayer.stop();
+    }
 }

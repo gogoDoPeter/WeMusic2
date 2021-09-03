@@ -67,3 +67,27 @@ Java_com_peter_myplayer_player_WeAudioPlayer_pauseNative(JNIEnv *env, jobject th
         fFmpeg->pause();
     }
 }
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_peter_myplayer_player_WeAudioPlayer_nativeStop(JNIEnv *env, jobject thiz)
+{
+    //TODO 注意：内存释放原则，哪里申请的，哪里释放，其他地方使用的话，其他地方释放时置位NULL
+    if(fFmpeg != nullptr)
+    {
+        fFmpeg->release();
+        delete(fFmpeg); //Call ffmpeg destructor
+        fFmpeg = nullptr;
+
+        if(callJava != nullptr)
+        {
+            delete(callJava);//Call callJava destructor
+            callJava = nullptr;
+        }
+        if(playStatus != nullptr)
+        {
+            delete(playStatus);//Call playStatus destructor
+            playStatus = nullptr;
+        }
+    }
+}

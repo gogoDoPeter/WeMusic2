@@ -4,31 +4,41 @@
 
 #include "CallJava.h"
 
-CallJava::CallJava(_JavaVM *javaVm, JNIEnv *env, jobject *obj) {
+CallJava::CallJava(_JavaVM *javaVm, JNIEnv *env, jobject *obj)
+{
     this->javaVm = javaVm;
     this->jniEnv = env;
     this->jobj = *obj;
     this->jobj = env->NewGlobalRef(jobj);
 
     jclass jclaz = jniEnv->GetObjectClass(jobj);
-    if (!jclaz) {
+    if (!jclaz)
+    {
         LOGE("get jclass fail");
         return;
     }
     jmid_prepared = env->GetMethodID(jclaz, "onCallPrepared", "()V");
     jmid_load = env->GetMethodID(jclaz, "onCallLoadStatus", "(Z)V");
+    jmid_timeinfo = env->GetMethodID(jclaz, "onCallTimeInfo", "(II)V");
+    jmid_errormsg=env->GetMethodID(jclaz,"onCallError","(ILjava/lang/String;)V");
 }
 
-CallJava::~CallJava() {
+CallJava::~CallJava()
+{
 
 }
 
-void CallJava::onCallPrepared(int type) {
-    if (type == MAIN_THREAD) {
+void CallJava::onCallPrepared(int type)
+{
+    if (type == MAIN_THREAD)
+    {
         jniEnv->CallVoidMethod(jobj, jmid_prepared);
-    } else if (type == CHILD_THREAD) {
+    }
+    else if (type == CHILD_THREAD)
+    {
         JNIEnv *env;
-        if (javaVm->AttachCurrentThread(&env, 0) != JNI_OK) {
+        if (javaVm->AttachCurrentThread(&env, 0) != JNI_OK)
+        {
             LOGE("Get child thread JNIEnv fail");
             return;
         }
@@ -37,16 +47,62 @@ void CallJava::onCallPrepared(int type) {
     }
 }
 
-void CallJava::onCallLoadStatus(int type, bool load) {
-    if (type == MAIN_THREAD) {
+void CallJava::onCallLoadStatus(int type, bool load)
+{
+    if (type == MAIN_THREAD)
+    {
         jniEnv->CallVoidMethod(jobj, jmid_load);
-    } else if (type == CHILD_THREAD) {
+    }
+    else if (type == CHILD_THREAD)
+    {
         JNIEnv *env;
-        if (javaVm->AttachCurrentThread(&env, 0) != JNI_OK) {
+        if (javaVm->AttachCurrentThread(&env, 0) != JNI_OK)
+        {
             LOGE("Get child thread JNIEnv fail");
             return;
         }
         env->CallVoidMethod(jobj, jmid_load, load);
+        javaVm->DetachCurrentThread();
+    }
+}
+
+void CallJava::onCallTimeInfo(int type, int currentTime, int totalTime)
+{
+    if (type == MAIN_THREAD)
+    {
+        jniEnv->CallVoidMethod(jobj, jmid_timeinfo, currentTime, totalTime);
+    }
+    else if (type == CHILD_THREAD)
+    {
+        JNIEnv *env;
+        if (javaVm->AttachCurrentThread(&env, 0) != JNI_OK)
+        {
+            LOGE("Get child thread JNIEnv fail");
+            return;
+        }
+        env->CallVoidMethod(jobj, jmid_timeinfo, currentTime, totalTime);
+        javaVm->DetachCurrentThread();
+    }
+}
+
+void CallJava::onCallErrorMsg(int type, int code, char *msg) {
+    if (type == MAIN_THREAD)
+    {
+        jstring jmsg= jniEnv->NewStringUTF(msg);
+        jniEnv->CallVoidMethod(jobj, jmid_errormsg, code, jmsg);
+        jniEnv->DeleteLocalRef(jmsg);
+    }
+    else if (type == CHILD_THREAD)
+    {
+        JNIEnv *env;
+        if (javaVm->AttachCurrentThread(&env, 0) != JNI_OK)
+        {
+            LOGE("Get child thread JNIEnv fail");
+            return;
+        }
+        jstring jmsg= jniEnv->NewStringUTF(msg);
+        env->CallVoidMethod(jobj, jmid_errormsg, code, jmsg);
+        jniEnv->DeleteLocalRef(jmsg);
         javaVm->DetachCurrentThread();
     }
 }

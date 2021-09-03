@@ -18,12 +18,6 @@ add_library( # Sets the name of the library.
         PlayStatus.cpp
         CallJava.cpp
 
-#        WlAudio.cpp
-#        WlCallJava.cpp
-#        WlFFmpeg.cpp
-#        WlQueue.cpp
-#        WlPlaystatus.cpp
-#
 #        soundtouch/SoundTouch/AAFilter.cpp
 #        soundtouch/SoundTouch/FIFOSampleBuffer.cpp
 #        soundtouch/SoundTouch/FIRFilter.cpp

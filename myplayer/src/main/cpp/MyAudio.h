@@ -52,6 +52,13 @@ public:
     //缓冲器队列接口
     SLAndroidSimpleBufferQueueItf pcmBufferQueue = NULL;
 
+
+    int duration = 0;
+    AVRational time_base;
+    double clock;//总的播放时长
+    double now_time;//当前Frame的时间
+    double last_time;//上一次调用的时间
+
 public:
     MyAudio(PlayStatus *playStatus, int sample_rate, CallJava *callJava_);
     ~MyAudio();
@@ -64,6 +71,7 @@ public:
 
     void pause();
     void resume();
+    void release();
 };
 
 

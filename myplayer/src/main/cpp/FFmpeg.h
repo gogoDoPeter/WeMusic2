@@ -14,6 +14,7 @@
 extern "C"
 {
 #include "libavformat/avformat.h"
+#include <libavutil/time.h>
 };
 
 class FFmpeg
@@ -26,6 +27,10 @@ public:
     PlayStatus *playStatus = nullptr;
     CallJava *callJava = nullptr;
 
+    pthread_mutex_t init_mutex;
+    bool exitFfmpeg = false;
+
+    char errMsg[40];
 public:
     FFmpeg(const char *source, CallJava *callJava_, PlayStatus *playStatus_);
 
@@ -38,6 +43,8 @@ public:
     void start();
     void pause();
     void resume();
+
+    void release();
 };
 
 

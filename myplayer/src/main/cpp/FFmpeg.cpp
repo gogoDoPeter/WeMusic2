@@ -4,14 +4,23 @@
 
 #include "FFmpeg.h"
 
+static int getCurrentTime() {
+    struct timeval t;
+    gettimeofday(&t, nullptr);
+    return static_cast<int>(t.tv_sec * 1000 + t.tv_usec / 1000);
+}
+
 FFmpeg::FFmpeg(const char *source, CallJava *callJava_, PlayStatus *playStatus_) {
     this->source = source;
     this->callJava = callJava_;
     this->playStatus = playStatus_;
+    exitFfmpeg = false;
+    memset(errMsg, 0, sizeof(errMsg));
+    pthread_mutex_init(&init_mutex, nullptr);
 }
 
 FFmpeg::~FFmpeg() {
-
+    pthread_mutex_destroy(&init_mutex);
 }
 
 void *decodeFFmpegRun(void *data) {
@@ -30,17 +39,39 @@ void FFmpeg::prepared() {
     LOGE("prepared -");
 }
 
+int avformat_callback(void *ctx) {
+    FFmpeg *fFmpeg = (FFmpeg *) ctx;
+    if (fFmpeg->playStatus->exit) {
+        return AVERROR_EOF;
+    }
+    return 0;
+}
+
 void FFmpeg::decodeFFmpegThread() {
     LOGE("decodeFFmpegThread + :%s", source);
+
     av_register_all();
     avformat_network_init();
     pFormatCtx = avformat_alloc_context();
+
+    pFormatCtx->interrupt_callback.callback = avformat_callback;
+    pFormatCtx->interrupt_callback.opaque = this;
+
+    int now_time = getCurrentTime();
+
     LOGE("decodeFFmpegThread 1 avformat_open_input, :%s", source);
     int retVal = avformat_open_input(&pFormatCtx, source, NULL, NULL);
     if (retVal != 0) {
         if (LOG_DEBUG) {
             LOGE("can not open source :%s, errcode:%d", source, retVal);
         }
+        if (callJava) {
+            sprintf(errMsg, "can not open source:%s, errcode:%d", source, retVal);
+            callJava->onCallErrorMsg(CHILD_THREAD,
+                                     ERROR_CODE_AVFORMAT_OPEN_FAIL, errMsg);
+        }
+        exitFfmpeg = true;
+        pthread_mutex_unlock(&init_mutex);
         return;
     }
     LOGE("decodeFFmpegThread 2, avformat_find_stream_info");
@@ -49,6 +80,13 @@ void FFmpeg::decodeFFmpegThread() {
         if (LOG_DEBUG) {
             LOGE("can not find streams from %s, errcode:%d", source, retVal);
         }
+        if (callJava) {
+            sprintf(errMsg, "can not find streams from %s, errcode:%d", source, retVal);
+            callJava->onCallErrorMsg(CHILD_THREAD,
+                                     ERROR_CODE_AVFORMAT_FIND_STREAM_INFO, errMsg);
+        }
+        exitFfmpeg = true;
+        pthread_mutex_unlock(&init_mutex);
         return;
     }
     LOGE("decodeFFmpegThread 3, pFormatCtx->nb_streams:%d", pFormatCtx->nb_streams);
@@ -60,6 +98,8 @@ void FFmpeg::decodeFFmpegThread() {
                                     callJava);
                 audio->streamIndex = i;
                 audio->avCodecParameters = pFormatCtx->streams[i]->codecpar;
+                audio->duration = pFormatCtx->duration / AV_TIME_BASE;
+                audio->time_base = pFormatCtx->streams[i]->time_base;
             }
         }
     }
@@ -69,6 +109,13 @@ void FFmpeg::decodeFFmpegThread() {
         if (LOG_DEBUG) {
             LOGE("can not find decoder");
         }
+        if (callJava) {
+            sprintf(errMsg, "can not find decoder");
+            callJava->onCallErrorMsg(CHILD_THREAD,
+                                     ERROR_CODE_AVFORMAT_FIND_DECODER, errMsg);
+        }
+        exitFfmpeg = true;
+        pthread_mutex_unlock(&init_mutex);
         return;
     }
     LOGE("decodeFFmpegThread 5, avcodec_alloc_context3");
@@ -77,6 +124,13 @@ void FFmpeg::decodeFFmpegThread() {
         if (LOG_DEBUG) {
             LOGE("can not alloc new decodecctx");
         }
+        if (callJava) {
+            sprintf(errMsg, "can not alloc new decodecctx");
+            callJava->onCallErrorMsg(CHILD_THREAD,
+                                     ERROR_CODE_AVCODEC_ALLOC_CONTEXT, errMsg);
+        }
+        exitFfmpeg = true;
+        pthread_mutex_unlock(&init_mutex);
         return;
     }
     LOGE("decodeFFmpegThread 6, avcodec_parameters_to_context");
@@ -84,6 +138,13 @@ void FFmpeg::decodeFFmpegThread() {
         if (LOG_DEBUG) {
             LOGE("can not fill decodecctx");
         }
+        if (callJava) {
+            sprintf(errMsg, "can not fill decodecct");
+            callJava->onCallErrorMsg(CHILD_THREAD,
+                                     ERROR_CODE_AVCODEC_PARAM_TO_CONTEXT,errMsg);
+        }
+        exitFfmpeg = true;
+        pthread_mutex_unlock(&init_mutex);
         return;
     }
     LOGE("decodeFFmpegThread 7, avcodec_open2");
@@ -92,11 +153,26 @@ void FFmpeg::decodeFFmpegThread() {
         if (LOG_DEBUG) {
             LOGE("cant not open audio streams, errcode:%d", retVal);
         }
+        if (callJava) {
+            sprintf(errMsg, "cant not open audio streams, errcode:%d", retVal);
+            callJava->onCallErrorMsg(CHILD_THREAD,
+                                     ERROR_CODE_AVCODEC_OPEN, errMsg);
+        }
+        exitFfmpeg = true;
+        pthread_mutex_unlock(&init_mutex);
         return;
     }
 
-    LOGD("Open audio streams success");
-    callJava->onCallPrepared(CHILD_THREAD);
+    LOGD("Open audio streams success, decode ffmpeg costTime:%d", getCurrentTime() - now_time);
+    if (callJava != nullptr) {
+        if (playStatus != nullptr && !playStatus->exit) {
+            callJava->onCallPrepared(CHILD_THREAD);
+        } else {
+            exitFfmpeg = true;//TODO Why? if playstatus->exit is true,then set exit to true
+        }
+    }
+
+    pthread_mutex_unlock(&init_mutex);
     LOGE("decodeFFmpegThread -");
 }
 
@@ -110,27 +186,31 @@ void FFmpeg::start() {
     }
     audio->play();
 
-    while (1) {
+    while (playStatus != NULL && !playStatus->exit) {
         AVPacket *avPacket = av_packet_alloc();
         if (av_read_frame(pFormatCtx, avPacket) == 0) {
             if (avPacket->stream_index == audio->streamIndex)//index 0 is Audio, 1 is video
             {
-                //解码操作
                 audio->queue->putAvpacket(avPacket);
             } else {
                 av_packet_free(&avPacket);
                 av_free(avPacket);
             }
         } else {
-            if (LOG_DEBUG) {
-                LOGE("decode finished");
-            }
             av_packet_free(&avPacket);
             av_free(avPacket);
+            while (playStatus != NULL && !playStatus->exit) {
+                if (audio->queue->getQueueSize() > 0) {
+                    continue;
+                } else {
+                    playStatus->exit = true;
+                    break;
+                }
+            }
             break;
         }
     }
-
+    exitFfmpeg = true;
     //模拟出队
 /*    while (audio->queue->getQueueSize() > 0)
     {
@@ -143,18 +223,80 @@ void FFmpeg::start() {
     if (LOG_DEBUG) {
         LOGD("解码完成");
     }
-
     LOGE("FFmpeg start -");
 }
 
 void FFmpeg::pause() {
-    if(audio!= nullptr){
+    if (audio != nullptr) {
         audio->pause();
     }
 }
 
 void FFmpeg::resume() {
-    if(audio!= nullptr){
+    if (audio != nullptr) {
         audio->resume();
     }
+}
+
+void FFmpeg::release() {
+    if (LOG_DEBUG) {
+        LOGE("开始释放Ffmpeg");
+    }
+    if (playStatus->exit) {
+        return;
+    }
+
+    if (LOG_DEBUG) {
+        LOGE("开始释放Ffmpeg2");
+    }
+    playStatus->exit = true;
+
+    pthread_mutex_lock(&init_mutex);
+    int sleepCount = 0;
+
+    int now_time = getCurrentTime();
+    while (!exitFfmpeg) {
+        if (sleepCount > 1000) {
+            exitFfmpeg = true;
+        }
+        if (LOG_DEBUG) {
+            LOGE("wait ffmpeg  exit, sleepCount:%d", sleepCount);
+        }
+        sleepCount++;
+        av_usleep(1000 * 10);//暂停10毫秒 TODO 用av_usleep()合适？
+    }
+
+    if (LOG_DEBUG) {
+        LOGE("释放 Audio, sleep costTime:%d ms", getCurrentTime() - now_time);
+    }
+
+    if (audio != NULL) {
+        audio->release();
+        delete (audio);
+        audio = NULL;
+    }
+
+    if (LOG_DEBUG) {
+        LOGE("释放 封装格式上下文");
+    }
+    if (pFormatCtx != NULL) {
+        avformat_close_input(&pFormatCtx);
+        avformat_free_context(pFormatCtx);
+        pFormatCtx = NULL;
+    }
+
+    if (LOG_DEBUG) {
+        LOGE("释放 callJava");
+    }
+    if (callJava != NULL) {
+        callJava = NULL;
+    }
+
+    if (LOG_DEBUG) {
+        LOGE("释放 playStatus");
+    }
+    if (playStatus != NULL) {
+        playStatus = NULL;
+    }
+    pthread_mutex_unlock(&init_mutex);
 }
