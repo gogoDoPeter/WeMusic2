@@ -40,6 +40,8 @@ public class WeAudioPlayer {
     private static int duration = -1;
     private static int volumePercent = 0;
     private static MuteEnum muteEnum = MuteEnum.MUTE_STEREO;
+    private static double speed = 1.0;
+    private static double pitch = 1.0;
 
     public WeAudioPlayer() {
         MyLog.d("WeAudioPlayer constructor in MyLog");
@@ -113,6 +115,8 @@ public class WeAudioPlayer {
                 Log.d(TAG, "native start");
                 setVolume(volumePercent);
                 setMute(muteEnum);
+                setPitch(pitch);
+                setSpeed(speed);
                 native_start();
             }
         }).start();
@@ -176,6 +180,17 @@ public class WeAudioPlayer {
         muteEnum = mute;
         nativeSetMute(mute.getValue());
     }
+
+    public void setSpeed(double speed_) {
+        speed = speed_;
+        nativeSetSpeed(speed);
+    }
+
+    public void setPitch(double pitch_) {
+        this.pitch = pitch_;
+        nativeSetPitch(pitch);
+    }
+
 
     /**
      * c++回调java的方法
@@ -242,5 +257,9 @@ public class WeAudioPlayer {
     private native void nativeSetVolume(int percent);
 
     private native void nativeSetMute(int value);
+
+    private native void nativeSetSpeed(double speed);
+
+    private native void nativeSetPitch(double pitch);
 
 }

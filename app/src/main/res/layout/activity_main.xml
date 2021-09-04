@@ -124,7 +124,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="变调不变速"
-            android:onClick="pitch_of_tone"/>
+            android:onClick="pitch"/>
         <Button
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"

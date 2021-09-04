@@ -14,11 +14,11 @@ MyAudio::MyAudio(PlayStatus *playStatus, int sample_rate, CallJava *callJava_) {
     this->callJava = callJava_;
 
     sampleBuffer = static_cast<SAMPLETYPE *>(malloc(sample_rate * 2 * 2));//TODO need release
-    soundTouch=new SoundTouch();
+    soundTouch = new SoundTouch();
     soundTouch->setSampleRate(sample_rate);
     soundTouch->setChannels(2);
-    soundTouch->setPitch(1.5f);//tone
-    soundTouch->setTempo(1.5f);//speed
+    soundTouch->setPitch(1.5);//tone
+    soundTouch->setTempo(2.0);//speed
 }
 
 
@@ -132,7 +132,7 @@ int MyAudio::resampleAudio(void **ppPcmbuf) {
             }
             clock = now_time;
 
-            *ppPcmbuf=buffer;//Get resample pcm buf
+            *ppPcmbuf = buffer;//Get resample pcm buf
 
 //            fwrite(buffer, 1, data_size, outFile);
 //            LOGE("Write data_size is %d ", data_size);
@@ -173,12 +173,12 @@ int MyAudio::getSoundTouchData() {
             isFinished = false;
             data_size = resampleAudio(reinterpret_cast<void **>(&out_buffer));
             //TODO 8bitPCM转16bitPCM
-           /* 因为FFmpeg解码出来的PCM数据是8bit （uint8）的，而SoundTouch中最低是16bit（ 16bit integer samples ），
-            * 所以我们需要将8bit的数据转换成16bit后再给SoundTouch处理。
-            处理方式：
-            由于PCM数据在内存中是顺序排列的，所以我们先将第一个8bit的数据复制到16bit内存的前8位，
-            然后将8bit的数据再复制给16bit内存的后8bit，就能把16bit的内存填满，
-            然后循环复制，直到把8bit的内存全部复制到16bit的内存中*/
+            /* 因为FFmpeg解码出来的PCM数据是8bit （uint8）的，而SoundTouch中最低是16bit（ 16bit integer samples ），
+             * 所以我们需要将8bit的数据转换成16bit后再给SoundTouch处理。
+             处理方式：
+             由于PCM数据在内存中是顺序排列的，所以我们先将第一个8bit的数据复制到16bit内存的前8位，
+             然后将8bit的数据再复制给16bit内存的后8bit，就能把16bit的内存填满，
+             然后循环复制，直到把8bit的内存全部复制到16bit的内存中*/
             if (data_size > 0) {
                 for (int i = 0; i < data_size / 2 + 1; i++) {
                     sampleBuffer[i] = (out_buffer[i * 2] | ((out_buffer[i * 2 + 1]) << 8));
@@ -225,7 +225,7 @@ void pcmBufferCallBack(SLAndroidSimpleBufferQueueItf bf, void *context) {
             // 这里的buf经过soundtouch处理转换了，所以填写处理的buf地址：wlAudio->sampleBuffer,
             // 原来这里的size是buffersize（不经过soundtouch处理前设置的值），现在要改为buffersize * 2 * 2，第一个2是双通道，第二个2表示位数
             (*myAudio->pcmBufferQueue)->Enqueue(myAudio->pcmBufferQueue,
-                                                (char *) myAudio->sampleBuffer, bufferSize *2 *2);
+                                                (char *) myAudio->sampleBuffer, bufferSize * 2 * 2);
         }
     }
 }
@@ -400,10 +400,11 @@ void MyAudio::release() {
     if (callJava != nullptr) {
         callJava = nullptr;
     }
-    if(soundTouch!= nullptr){
-        delete soundTouch;
-        soundTouch= nullptr;
-    }
+
+//    if (soundTouch != nullptr) {
+//        delete soundTouch;
+//        soundTouch = nullptr;
+//    }
 }
 
 void MyAudio::setVolume(int percent) {
@@ -443,5 +444,21 @@ void MyAudio::setMute(int muteType) {
             (*pcmMutePlay)->SetChannelMute(pcmMutePlay, 0, false);
             (*pcmMutePlay)->SetChannelMute(pcmMutePlay, 1, false);
         }
+    }
+}
+
+void MyAudio::setPitch(double pitch_) {
+    this->pitch = pitch_;
+    if (soundTouch != nullptr) {
+        LOGD("pitch:%lf",pitch);
+        soundTouch->setPitch(pitch);
+    }
+}
+
+void MyAudio::setSpeed(double speed_) {
+    this->speed = speed_;
+    if (soundTouch != nullptr) {
+        LOGD("speed:%lf",speed);
+        soundTouch->setTempo(speed);
     }
 }

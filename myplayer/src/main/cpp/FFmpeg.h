@@ -55,6 +55,10 @@ public:
     void setVolume(int percent);
 
     void setMute(int muteType);
+
+    void setSpeed(double speed);
+
+    void setPitch(double pitch);
 };
 
 

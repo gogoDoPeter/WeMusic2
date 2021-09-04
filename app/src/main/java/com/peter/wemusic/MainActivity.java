@@ -64,6 +64,9 @@ public class MainActivity extends AppCompatActivity {
 
         wePlayer.setVolume(50);
         wePlayer.setMute(MuteEnum.MUTE_LEFT);
+        wePlayer.setPitch(1.5);
+        wePlayer.setSpeed(1.5);
+
         tv_volume.setText("音量:"+wePlayer.getVolumePercent()+"%");
         seekBarVolume.setProgress(wePlayer.getVolumePercent());
 
@@ -274,14 +277,22 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void speed(View view) {
+        wePlayer.setSpeed(1.5);
+        wePlayer.setPitch(1.0);
     }
 
-    public void pitch_of_tone(View view) {
+    public void pitch(View view) {//pitch_of_tone
+        wePlayer.setSpeed(1.0);
+        wePlayer.setPitch(1.5);
     }
 
     public void speedpitch(View view) {
+        wePlayer.setSpeed(1.5);
+        wePlayer.setPitch(1.5);
     }
 
     public void normalspeedpitch(View view) {
+        wePlayer.setSpeed(1.0);
+        wePlayer.setPitch(1.0);
     }
 }

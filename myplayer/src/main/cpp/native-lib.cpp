@@ -107,7 +107,7 @@ Java_com_peter_myplayer_player_WeAudioPlayer_nativeStop(JNIEnv *env, jobject ins
     }
 
     isStopDone = true;
-    env->CallVoidMethod(instance,jmid_next);
+    env->CallVoidMethod(instance, jmid_next);
 }
 
 extern "C"
@@ -121,7 +121,7 @@ Java_com_peter_myplayer_player_WeAudioPlayer_NativeSeek(JNIEnv *env, jobject thi
 extern "C"
 JNIEXPORT jint JNICALL
 Java_com_peter_myplayer_player_WeAudioPlayer_nativeGetDuration(JNIEnv *env, jobject thiz) {
-    if(fFmpeg!= nullptr){
+    if (fFmpeg != nullptr) {
         return fFmpeg->duration;
     }
     return 0;
@@ -131,16 +131,35 @@ extern "C"
 JNIEXPORT void JNICALL
 Java_com_peter_myplayer_player_WeAudioPlayer_nativeSetVolume(JNIEnv *env, jobject thiz,
                                                              jint percent) {
-    if(fFmpeg!= nullptr){
+    if (fFmpeg != nullptr) {
         fFmpeg->setVolume(percent);
     }
 }
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_com_peter_myplayer_player_WeAudioPlayer_nativeSetMute(JNIEnv *env, jobject thiz, jint muteType) {
+Java_com_peter_myplayer_player_WeAudioPlayer_nativeSetMute(JNIEnv *env, jobject thiz,
+                                                           jint muteType) {
 
-    if(fFmpeg!= nullptr){
+    if (fFmpeg != nullptr) {
         fFmpeg->setMute(muteType);
+    }
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_peter_myplayer_player_WeAudioPlayer_nativeSetSpeed(JNIEnv *env, jobject thiz,
+                                                            jdouble speed) {
+    if (fFmpeg != nullptr) {
+        fFmpeg->setSpeed(speed);
+    }
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_peter_myplayer_player_WeAudioPlayer_nativeSetPitch(JNIEnv *env, jobject thiz,
+                                                            jdouble pitch) {
+    if (fFmpeg != nullptr) {
+        fFmpeg->setPitch(pitch);
     }
 }

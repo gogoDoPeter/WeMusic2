@@ -345,3 +345,15 @@ void FFmpeg::setMute(int muteType) {
         audio->setMute(muteType);
     }
 }
+
+void FFmpeg::setSpeed(double speed) {
+    if (audio != nullptr) {
+        audio->setSpeed(speed);
+    }
+}
+
+void FFmpeg::setPitch(double pitch) {
+    if (audio != nullptr) {
+        audio->setPitch(pitch);
+    }
+}

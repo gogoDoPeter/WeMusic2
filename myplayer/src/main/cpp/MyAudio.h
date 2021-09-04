@@ -73,6 +73,8 @@ public:
     int nbSize = 0;
     int num = 0;
 
+    double speed = 1.0;
+    double pitch = 1.0;
 
 public:
     MyAudio(PlayStatus *playStatus, int sample_rate, CallJava *callJava_);
@@ -98,6 +100,8 @@ public:
     void setMute(int muteType);
 
     int getSoundTouchData();
+    void setPitch(double pitch_);
+    void setSpeed(double speed_);
 };
 
 
