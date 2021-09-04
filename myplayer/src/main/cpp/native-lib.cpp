@@ -8,7 +8,7 @@ _JavaVM *javaVm = nullptr;
 CallJava *callJava = nullptr;
 FFmpeg *fFmpeg = nullptr;
 PlayStatus *playStatus = nullptr;
-bool nexit = true;
+bool isStopDone = true;
 pthread_t thread_start;
 
 extern "C"
@@ -80,12 +80,15 @@ Java_com_peter_myplayer_player_WeAudioPlayer_pauseNative(JNIEnv *env, jobject th
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_com_peter_myplayer_player_WeAudioPlayer_nativeStop(JNIEnv *env, jobject thiz) {
-    if (!nexit) {
+Java_com_peter_myplayer_player_WeAudioPlayer_nativeStop(JNIEnv *env, jobject instance) {
+    if (!isStopDone) {// TODO 解决退出过程中又点击stop，导致流程走多次异常
         return;
     }
 
-    nexit = false;
+    jclass jClaz = env->GetObjectClass(instance);
+    jmethodID jmid_next = env->GetMethodID(jClaz, "onCallNext", "()V");
+
+    isStopDone = false;
 
     //TODO 注意：内存释放原则，哪里申请的，哪里释放，其他地方使用的话，其他地方释放时置位NULL
     if (fFmpeg != nullptr) {
@@ -103,7 +106,8 @@ Java_com_peter_myplayer_player_WeAudioPlayer_nativeStop(JNIEnv *env, jobject thi
         }
     }
 
-    nexit = true;
+    isStopDone = true;
+    env->CallVoidMethod(instance,jmid_next);
 }
 
 extern "C"

@@ -33,8 +33,14 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Seek"
+        android:textAllCaps="false"
         android:onClick="seek"/>
-
+    <Button
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="SwitchNext"
+        android:textAllCaps="false"
+        android:onClick="switch_next"/>
     <TextView
             android:id="@+id/tv_time"
             android:layout_width="wrap_content"

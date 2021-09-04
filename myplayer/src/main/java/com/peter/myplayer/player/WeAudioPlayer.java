@@ -35,6 +35,7 @@ public class WeAudioPlayer {
     private MyOnErrorListener onErrorListener;
     private MyOnCompleteListener onCompleteListener;
     private static TimeInfoBean timeInfoBean;
+    private static boolean isPlayNext = false;
 
     public WeAudioPlayer() {
         MyLog.d("WeAudioPlayer constructor in MyLog");
@@ -100,6 +101,8 @@ public class WeAudioPlayer {
             MyLog.d("data source not be empty");
             return;
         }
+        //TODO start new child thread1, native-lib new child thread2,
+        // finally execute func in which thread?
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -109,8 +112,8 @@ public class WeAudioPlayer {
         }).start();
     }
 
-    public void stop() {
-        timeInfoBean=null;
+    public void stop() {//TODO why stop new thread?
+        timeInfoBean = null;
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -122,7 +125,6 @@ public class WeAudioPlayer {
     public void seek(int second) {
         NativeSeek(second);
     }
-
 
     public void pause() {
         pauseNative();
@@ -138,6 +140,11 @@ public class WeAudioPlayer {
         }
     }
 
+    public void playNext(String source_) {
+        source = source_;
+        isPlayNext = true;
+        stop();
+    }
 
     /**
      * c++回调java的方法
@@ -173,10 +180,17 @@ public class WeAudioPlayer {
         }
     }
 
-    public void onCallComplete(){
-        if(onCompleteListener != null){
+    public void onCallComplete() {
+        if (onCompleteListener != null) {
             stop();
             onCompleteListener.onComplete();
+        }
+    }
+
+    public void onCallNext() {
+        if (isPlayNext) {
+            isPlayNext = false;
+            prepared();
         }
     }
 
@@ -191,4 +205,6 @@ public class WeAudioPlayer {
     private native void nativeStop();
 
     private native void NativeSeek(int seconds);
+
+
 }

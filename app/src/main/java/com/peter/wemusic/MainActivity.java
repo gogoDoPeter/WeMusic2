@@ -185,4 +185,8 @@ public class MainActivity extends AppCompatActivity {
     public void seek(View view) {
         wePlayer.seek(215);
     }
+
+    public void switch_next(View view) {
+        wePlayer.playNext("http://ngcdn004.cnr.cn/live/dszs/index.m3u8");
+    }
 }
