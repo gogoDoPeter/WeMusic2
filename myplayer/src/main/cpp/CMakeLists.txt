@@ -18,18 +18,18 @@ add_library( # Sets the name of the library.
         PlayStatus.cpp
         CallJava.cpp
 
-#        soundtouch/SoundTouch/AAFilter.cpp
-#        soundtouch/SoundTouch/FIFOSampleBuffer.cpp
-#        soundtouch/SoundTouch/FIRFilter.cpp
-#        soundtouch/SoundTouch/cpu_detect_x86.cpp
-#        soundtouch/SoundTouch/sse_optimized.cpp
-#        soundtouch/SoundTouch/RateTransposer.cpp
-#        soundtouch/SoundTouch/SoundTouch.cpp
-#        soundtouch/SoundTouch/InterpolateCubic.cpp
-#        soundtouch/SoundTouch/InterpolateLinear.cpp
-#        soundtouch/SoundTouch/InterpolateShannon.cpp
-#        soundtouch/SoundTouch/TDStretch.cpp
-#        soundtouch/SoundTouch/PeakFinder.cpp
+        soundtouch/SoundTouch/AAFilter.cpp
+        soundtouch/SoundTouch/FIFOSampleBuffer.cpp
+        soundtouch/SoundTouch/FIRFilter.cpp
+        soundtouch/SoundTouch/cpu_detect_x86.cpp
+        soundtouch/SoundTouch/sse_optimized.cpp
+        soundtouch/SoundTouch/RateTransposer.cpp
+        soundtouch/SoundTouch/SoundTouch.cpp
+        soundtouch/SoundTouch/InterpolateCubic.cpp
+        soundtouch/SoundTouch/InterpolateLinear.cpp
+        soundtouch/SoundTouch/InterpolateShannon.cpp
+        soundtouch/SoundTouch/TDStretch.cpp
+        soundtouch/SoundTouch/PeakFinder.cpp
 
         )
 

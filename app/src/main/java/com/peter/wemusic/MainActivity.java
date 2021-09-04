@@ -16,6 +16,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.widget.SeekBar;
 import android.widget.TextView;
 
 import com.peter.myplayer.bean.TimeInfoBean;
@@ -26,6 +27,7 @@ import com.peter.myplayer.listener.MyOnPauseResumeListener;
 import com.peter.myplayer.listener.MyOnTimeInfoListener;
 import com.peter.myplayer.listener.OnPreparedListener;
 import com.peter.myplayer.player.WeAudioPlayer;
+import com.peter.myplayer.utils.MuteEnum;
 import com.peter.myplayer.utils.MyLog;
 import com.peter.myplayer.utils.MyTimeUtil;
 
@@ -38,6 +40,11 @@ public class MainActivity extends AppCompatActivity {
             Manifest.permission.WRITE_EXTERNAL_STORAGE
     };
     private TextView tv_time;
+    private TextView tv_volume;
+    private SeekBar seekBarSeek;
+    private SeekBar seekBarVolume;
+    private boolean isSeekProcessBar = false;
+    private int seekPosition = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -46,10 +53,19 @@ public class MainActivity extends AppCompatActivity {
 
         setContentView(R.layout.activity_main);
         tv_time = ((TextView) findViewById(R.id.tv_time));
+        tv_volume = findViewById(R.id.tv_volume);
+        seekBarSeek = findViewById(R.id.seekbar_seek);
+        seekBarVolume = findViewById(R.id.seekbar_volume);
+
 
         checkPermission();
 
         wePlayer = new WeAudioPlayer();
+
+        wePlayer.setVolume(50);
+        wePlayer.setMute(MuteEnum.MUTE_LEFT);
+        tv_volume.setText("音量:"+wePlayer.getVolumePercent()+"%");
+        seekBarVolume.setProgress(wePlayer.getVolumePercent());
 
         Log.d(TAG, "onCreate setOnPreparedListener");
         wePlayer.setOnPreparedListener(new OnPreparedListener() {
@@ -96,7 +112,7 @@ public class MainActivity extends AppCompatActivity {
         wePlayer.setOnErrorListener(new MyOnErrorListener() {
             @Override
             public void onError(int code, String msg) {
-                Log.d(TAG,"code=" + code + ", error:" + msg);
+                Log.d(TAG, "code=" + code + ", error:" + msg);
             }
         });
 
@@ -106,6 +122,55 @@ public class MainActivity extends AppCompatActivity {
                 Log.d(TAG, "播放完成了");
             }
         });
+
+        seekBarSeek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                Log.d(TAG, "onProgressChanged +");
+                if (isSeekProcessBar && wePlayer.getDuration() > 0) {
+                    seekPosition = progress * wePlayer.getDuration() / 100;
+                    Log.d(TAG, "progress:" + progress + ", seekPosition:" + seekPosition +
+                            ", isSlideSeekSeekBar:" + isSeekProcessBar);
+                }
+                Log.d(TAG, "onProgressChanged -");
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+                Log.d(TAG, "onStartTrackingTouch +");
+                isSeekProcessBar = true;
+                Log.d(TAG, "onStartTrackingTouch -");
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                Log.d(TAG, "onStopTrackingTouch +");
+                wePlayer.seek(seekPosition);
+                isSeekProcessBar = false;
+                Log.d(TAG, "onStopTrackingTouch -" +
+                        ", seekPosition:" + seekPosition +
+                        ", isSlideSeekSeekBar:" + isSeekProcessBar);
+            }
+        });
+
+        seekBarVolume.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                wePlayer.setVolume(progress);
+                tv_volume.setText("音量：" + wePlayer.getVolumePercent() + "%");
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+
+            }
+        });
+
         Log.d(TAG, "onCreate -");
     }
 
@@ -133,9 +198,15 @@ public class MainActivity extends AppCompatActivity {
         public void handleMessage(@NonNull Message msg) {
             super.handleMessage(msg);
             if (msg.what == 1) {
-                TimeInfoBean timeBean = (TimeInfoBean) msg.obj;
-                tv_time.setText(MyTimeUtil.secdsToDateFormat(timeBean.getTotalTime(), timeBean.getTotalTime())
-                        + "/" + MyTimeUtil.secdsToDateFormat(timeBean.getCurrentTime(), timeBean.getTotalTime()));
+                if (!isSeekProcessBar) {
+                    TimeInfoBean timeBean = (TimeInfoBean) msg.obj;
+                    tv_time.setText(MyTimeUtil.secdsToDateFormat(timeBean.getTotalTime(), timeBean.getTotalTime())
+                            + "/" + MyTimeUtil.secdsToDateFormat(timeBean.getCurrentTime(), timeBean.getTotalTime()));
+//                    Log.d(TAG, "seekBarSeek.setProgress");
+                    seekBarSeek.setProgress(timeBean.getCurrentTime() * 100 / timeBean.getTotalTime());
+//                    Log.d(TAG, "seekBarSeek.setProgress, progress:"+timeBean.getCurrentTime() * 100 / timeBean.getTotalTime());
+                }
+
             }
         }
     };
@@ -188,5 +259,29 @@ public class MainActivity extends AppCompatActivity {
 
     public void switch_next(View view) {
         wePlayer.playNext("http://ngcdn004.cnr.cn/live/dszs/index.m3u8");
+    }
+
+    public void left_channel(View view) {
+        wePlayer.setMute(MuteEnum.MUTE_LEFT);
+    }
+
+    public void right_channel(View view) {
+        wePlayer.setMute(MuteEnum.MUTE_RIGHT);
+    }
+
+    public void stereo_channel(View view) {
+        wePlayer.setMute(MuteEnum.MUTE_STEREO);
+    }
+
+    public void speed(View view) {
+    }
+
+    public void pitch_of_tone(View view) {
+    }
+
+    public void speedpitch(View view) {
+    }
+
+    public void normalspeedpitch(View view) {
     }
 }

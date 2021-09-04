@@ -117,3 +117,30 @@ Java_com_peter_myplayer_player_WeAudioPlayer_NativeSeek(JNIEnv *env, jobject thi
         fFmpeg->seek(seconds);
     }
 }
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_com_peter_myplayer_player_WeAudioPlayer_nativeGetDuration(JNIEnv *env, jobject thiz) {
+    if(fFmpeg!= nullptr){
+        return fFmpeg->duration;
+    }
+    return 0;
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_peter_myplayer_player_WeAudioPlayer_nativeSetVolume(JNIEnv *env, jobject thiz,
+                                                             jint percent) {
+    if(fFmpeg!= nullptr){
+        fFmpeg->setVolume(percent);
+    }
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_peter_myplayer_player_WeAudioPlayer_nativeSetMute(JNIEnv *env, jobject thiz, jint muteType) {
+
+    if(fFmpeg!= nullptr){
+        fFmpeg->setMute(muteType);
+    }
+}

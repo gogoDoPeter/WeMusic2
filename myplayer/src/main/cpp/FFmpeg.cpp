@@ -333,3 +333,15 @@ void FFmpeg::seek(int64_t seconds) {
         }
     }
 }
+
+void FFmpeg::setVolume(int percent) {
+    if (audio != nullptr) {
+        audio->setVolume(percent);
+    }
+}
+
+void FFmpeg::setMute(int muteType) {
+    if (audio != nullptr) {
+        audio->setMute(muteType);
+    }
+}

@@ -10,6 +10,7 @@ import com.peter.myplayer.listener.MyOnLoadListener;
 import com.peter.myplayer.listener.MyOnPauseResumeListener;
 import com.peter.myplayer.listener.MyOnTimeInfoListener;
 import com.peter.myplayer.listener.OnPreparedListener;
+import com.peter.myplayer.utils.MuteEnum;
 import com.peter.myplayer.utils.MyLog;
 
 public class WeAudioPlayer {
@@ -36,6 +37,9 @@ public class WeAudioPlayer {
     private MyOnCompleteListener onCompleteListener;
     private static TimeInfoBean timeInfoBean;
     private static boolean isPlayNext = false;
+    private static int duration = -1;
+    private static int volumePercent = 0;
+    private static MuteEnum muteEnum = MuteEnum.MUTE_STEREO;
 
     public WeAudioPlayer() {
         MyLog.d("WeAudioPlayer constructor in MyLog");
@@ -107,6 +111,8 @@ public class WeAudioPlayer {
             @Override
             public void run() {
                 Log.d(TAG, "native start");
+                setVolume(volumePercent);
+                setMute(muteEnum);
                 native_start();
             }
         }).start();
@@ -114,6 +120,8 @@ public class WeAudioPlayer {
 
     public void stop() {//TODO why stop new thread?
         timeInfoBean = null;
+        duration = -1;
+
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -144,6 +152,29 @@ public class WeAudioPlayer {
         source = source_;
         isPlayNext = true;
         stop();
+    }
+
+    public void setVolume(int percent) {
+        if (percent >= 0 && percent <= 100) {
+            volumePercent = percent;
+            nativeSetVolume(percent);
+        }
+    }
+
+    public int getDuration() {
+        if (duration < 0) {
+            duration = nativeGetDuration();
+        }
+        return duration;
+    }
+
+    public int getVolumePercent() {
+        return volumePercent;
+    }
+
+    public void setMute(MuteEnum mute) {
+        muteEnum = mute;
+        nativeSetMute(mute.getValue());
     }
 
     /**
@@ -206,5 +237,10 @@ public class WeAudioPlayer {
 
     private native void NativeSeek(int seconds);
 
+    private native int nativeGetDuration();
+
+    private native void nativeSetVolume(int percent);
+
+    private native void nativeSetMute(int value);
 
 }

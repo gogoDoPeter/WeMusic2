@@ -7,6 +7,9 @@
 
 #include "SafeQueue.h"
 #include "CallJava.h"
+#include "SoundTouch.h"
+
+using namespace soundtouch;
 
 extern "C"
 {
@@ -16,8 +19,7 @@ extern "C"
 #include <SLES/OpenSLES_Android.h>
 };
 
-class MyAudio
-{
+class MyAudio {
 public:
     int streamIndex = -1;
     AVCodecContext *avCodecContext = nullptr;
@@ -35,7 +37,7 @@ public:
 
     int sample_rate = 0;
 
-    CallJava *callJava= nullptr;
+    CallJava *callJava = nullptr;
     // 引擎接口
     SLObjectItf engineObject = NULL;
     SLEngineItf engineEngine = NULL;
@@ -48,6 +50,8 @@ public:
     //pcm
     SLObjectItf pcmPlayerObject = NULL;
     SLPlayItf pcmPlayerPlay = NULL;
+    SLVolumeItf pcmVolumePlay = NULL;
+    SLMuteSoloItf pcmMutePlay = NULL;
 
     //缓冲器队列接口
     SLAndroidSimpleBufferQueueItf pcmBufferQueue = NULL;
@@ -59,19 +63,41 @@ public:
     double now_time;//当前Frame的时间
     double last_time;//上一次调用的时间
 
+    int muteType = 2;//默认设置立体声
+
+    //SoundTouch
+    SoundTouch *soundTouch = nullptr;
+    SAMPLETYPE *sampleBuffer = nullptr;
+    bool isFinished = true;
+    uint8_t *out_buffer = nullptr;
+    int nbSize = 0;
+    int num = 0;
+
+
 public:
     MyAudio(PlayStatus *playStatus, int sample_rate, CallJava *callJava_);
+
     ~MyAudio();
 
     void play();
-    int resampleAudio();
+
+    int resampleAudio(void **ppPcmbuf);
 
     void initOpenELSL();
+
     SLuint32 getCurrentSampleRateForOpensles(int sample_rate);
 
     void pause();
+
     void resume();
+
     void release();
+
+    void setVolume(int percent);
+
+    void setMute(int muteType);
+
+    int getSoundTouchData();
 };
 
 
