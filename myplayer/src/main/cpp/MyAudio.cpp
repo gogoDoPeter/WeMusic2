@@ -221,6 +221,12 @@ void pcmBufferCallBack(SLAndroidSimpleBufferQueueItf bf, void *context) {
                 myAudio->last_time = myAudio->clock;
                 myAudio->callJava->onCallTimeInfo(CHILD_THREAD, myAudio->clock, myAudio->duration);
             }
+
+            myAudio->callJava->onCallVolumeDb(CHILD_THREAD,
+                                              myAudio->getPcmDb(
+                                                      reinterpret_cast<char *>(myAudio->sampleBuffer),
+                                                      bufferSize * 4)
+            );
             //TODO  (*wlAudio->pcmBufferQueue)->Enqueue被循环调用，把处理数据送给ffmpeg来处理播放；
             // 这里的buf经过soundtouch处理转换了，所以填写处理的buf地址：wlAudio->sampleBuffer,
             // 原来这里的size是buffersize（不经过soundtouch处理前设置的值），现在要改为buffersize * 2 * 2，第一个2是双通道，第二个2表示位数
@@ -450,7 +456,7 @@ void MyAudio::setMute(int muteType) {
 void MyAudio::setPitch(double pitch_) {
     this->pitch = pitch_;
     if (soundTouch != nullptr) {
-        LOGD("pitch:%lf",pitch);
+        LOGD("pitch:%lf", pitch);
         soundTouch->setPitch(pitch);
     }
 }
@@ -458,7 +464,23 @@ void MyAudio::setPitch(double pitch_) {
 void MyAudio::setSpeed(double speed_) {
     this->speed = speed_;
     if (soundTouch != nullptr) {
-        LOGD("speed:%lf",speed);
+        LOGD("speed:%lf", speed);
         soundTouch->setTempo(speed);
     }
+}
+
+int MyAudio::getPcmDb(char *pcmData, size_t pcmSize) {
+    int db = 0;
+    short int preValue = 0;
+    double sum = 0;
+    for (int i = 0; i < pcmSize; i += 2) {
+        memcpy(&preValue, pcmData + i, 2);
+        sum += fabs(preValue);
+    }
+    sum = sum / (pcmSize / 2);
+    if (sum > 0) {
+        db = 20.0 * log10(sum);
+    }
+
+    return db;
 }

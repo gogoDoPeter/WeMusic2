@@ -10,6 +10,7 @@ import com.peter.myplayer.listener.MyOnLoadListener;
 import com.peter.myplayer.listener.MyOnPauseResumeListener;
 import com.peter.myplayer.listener.MyOnTimeInfoListener;
 import com.peter.myplayer.listener.OnPreparedListener;
+import com.peter.myplayer.listener.OnVolumeDBListener;
 import com.peter.myplayer.utils.MuteEnum;
 import com.peter.myplayer.utils.MyLog;
 
@@ -35,6 +36,8 @@ public class WeAudioPlayer {
     private MyOnTimeInfoListener onTimeInfoListener;
     private MyOnErrorListener onErrorListener;
     private MyOnCompleteListener onCompleteListener;
+    private OnVolumeDBListener onVolumeDBListener;
+
     private static TimeInfoBean timeInfoBean;
     private static boolean isPlayNext = false;
     private static int duration = -1;
@@ -84,6 +87,10 @@ public class WeAudioPlayer {
 
     public void setOnCompleteListener(MyOnCompleteListener onCompleteListener) {
         this.onCompleteListener = onCompleteListener;
+    }
+
+    public void setOnVolumeDBListener(OnVolumeDBListener onVolumeDBListener) {
+        this.onVolumeDBListener = onVolumeDBListener;
     }
 
     //TODO 为什么这里要开子线程做？  prepare将数据解封装，有延迟动作，需要放在子线程中执行
@@ -237,6 +244,11 @@ public class WeAudioPlayer {
         if (isPlayNext) {
             isPlayNext = false;
             prepared();
+        }
+    }
+    public void onCallVolumeDB(int db){
+        if(onVolumeDBListener!=null){
+            onVolumeDBListener.onVolumeDbValue(db);
         }
     }
 

@@ -26,6 +26,7 @@ import com.peter.myplayer.listener.MyOnLoadListener;
 import com.peter.myplayer.listener.MyOnPauseResumeListener;
 import com.peter.myplayer.listener.MyOnTimeInfoListener;
 import com.peter.myplayer.listener.OnPreparedListener;
+import com.peter.myplayer.listener.OnVolumeDBListener;
 import com.peter.myplayer.player.WeAudioPlayer;
 import com.peter.myplayer.utils.MuteEnum;
 import com.peter.myplayer.utils.MyLog;
@@ -123,6 +124,12 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onComplete() {
                 Log.d(TAG, "播放完成了");
+            }
+        });
+        wePlayer.setOnVolumeDBListener(new OnVolumeDBListener() {
+            @Override
+            public void onVolumeDbValue(int dbValue) {
+                Log.d(TAG,"get db="+dbValue);
             }
         });
 

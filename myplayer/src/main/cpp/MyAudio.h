@@ -102,6 +102,7 @@ public:
     int getSoundTouchData();
     void setPitch(double pitch_);
     void setSpeed(double speed_);
+    int getPcmDb(char * pcmData, size_t pcmSize);
 };
 
 
