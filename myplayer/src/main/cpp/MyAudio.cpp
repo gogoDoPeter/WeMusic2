@@ -320,13 +320,14 @@ void MyAudio::initOpenELSL()
     SLDataSource slDataSource = {&android_queue, &pcm};
 
 
-    const SLInterfaceID ids[3] = {SL_IID_BUFFERQUEUE, SL_IID_VOLUME, SL_IID_MUTESOLO};
-    const SLboolean req[3] = {SL_BOOLEAN_TRUE, SL_BOOLEAN_TRUE, SL_BOOLEAN_TRUE};
+    const SLInterfaceID ids[] = {SL_IID_BUFFERQUEUE, SL_IID_VOLUME, SL_IID_PLAYBACKRATE, SL_IID_MUTESOLO};
+    const SLboolean req[] = {SL_BOOLEAN_TRUE, SL_BOOLEAN_TRUE, SL_BOOLEAN_TRUE, SL_BOOLEAN_TRUE};
 
     (*engineEngine)->CreateAudioPlayer(engineEngine,
                                        &pcmPlayerObject,
-                                       &slDataSource, &audioSnk,
-                                       2,/*numberInterface*/
+                                       &slDataSource,
+                                       &audioSnk,
+                                       4,/*numberInterface*/
                                        ids, req);
     //初始化播放器
     (*pcmPlayerObject)->Realize(pcmPlayerObject, SL_BOOLEAN_FALSE);
