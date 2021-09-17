@@ -13,6 +13,7 @@ import com.peter.myplayer.listener.MyOnLoadListener;
 import com.peter.myplayer.listener.MyOnPauseResumeListener;
 import com.peter.myplayer.listener.MyOnTimeInfoListener;
 import com.peter.myplayer.listener.OnPreparedListener;
+import com.peter.myplayer.listener.OnRecordAacTimeListener;
 import com.peter.myplayer.listener.OnVolumeDBListener;
 import com.peter.myplayer.utils.MuteEnum;
 import com.peter.myplayer.utils.MyLog;
@@ -46,6 +47,7 @@ public class WeAudioPlayer {
     private MyOnErrorListener onErrorListener;
     private MyOnCompleteListener onCompleteListener;
     private OnVolumeDBListener onVolumeDBListener;
+    private OnRecordAacTimeListener onRecordAacTimeListener;
 
     private static TimeInfoBean timeInfoBean;
     private static boolean isPlayNext = false;
@@ -65,6 +67,9 @@ public class WeAudioPlayer {
     private MediaCodec.BufferInfo bufferInfo = null;
     private int perPcmSize = 0;
     private byte[] outByteBuffer = null;
+
+    private double recordTime = 0;
+    private int audioSamplerate = 0;
 
     public WeAudioPlayer() {
         MyLog.d("WeAudioPlayer constructor in MyLog");
@@ -113,6 +118,10 @@ public class WeAudioPlayer {
         this.onVolumeDBListener = onVolumeDBListener;
     }
 
+    public void setOnRecordAacTimeListener(OnRecordAacTimeListener onRecordAacTimeListener) {
+        this.onRecordAacTimeListener = onRecordAacTimeListener;
+    }
+
     //TODO 为什么这里要开子线程做？  prepare将数据解封装，有延迟动作，需要放在子线程中执行
     public void prepared() {
         if (TextUtils.isEmpty(source)) {
@@ -152,6 +161,7 @@ public class WeAudioPlayer {
     public void stop() {//TODO why stop use new thread?
         timeInfoBean = null;
         duration = -1;
+        recordTime = 0;
         stopRecord();//TODO notice here
         new Thread(new Runnable() {
             @Override
@@ -220,10 +230,10 @@ public class WeAudioPlayer {
 
     public void startRecord(File saveFileName) {
         if (!bInitMediaCodec) {
-            int sampleRate = nativeGetSampleRate();
-            if (sampleRate > 0) {
+            audioSamplerate = nativeGetSampleRate();
+            if (audioSamplerate > 0) {
                 bInitMediaCodec = true;
-                initMediaCodec(sampleRate, saveFileName);
+                initMediaCodec(audioSamplerate, saveFileName);
                 nativeStartStopRecord(true);
                 Log.d(TAG, "Start record pcm2aac");
             }
@@ -240,21 +250,22 @@ public class WeAudioPlayer {
     }
 
     public void pauseRecord() {
-        if(bInitMediaCodec){
+        if (bInitMediaCodec) {
             nativeStartStopRecord(false);
-            Log.d(TAG,"Pause record aac");
+            Log.d(TAG, "Pause record aac");
         }
     }
 
     public void goonRecord() {
-        if(bInitMediaCodec){
+        if (bInitMediaCodec) {
             nativeStartStopRecord(true);
-            Log.d(TAG,"Goon record aac");
+            Log.d(TAG, "Goon record aac");
         }
     }
 
     private void initMediaCodec(int sampleRate, File saveFileName) {
         try {
+            recordTime = 0;
             aacSampleRate = getADTSSampleRate(sampleRate);
             Log.d(TAG, "sampleRate=" + sampleRate + ", aacSampleRate=" + aacSampleRate);
             encoderFormat = MediaFormat.createAudioFormat(MediaFormat.MIMETYPE_AUDIO_AAC, sampleRate, 2);
@@ -295,6 +306,7 @@ public class WeAudioPlayer {
             encoderFormat = null;
             bufferInfo = null;
             bInitMediaCodec = false;
+            recordTime = 0;
             MyLog.d("录制完成...");
         } catch (IOException e) {
             e.printStackTrace();
@@ -310,9 +322,9 @@ public class WeAudioPlayer {
         }
     }
 
-    private void addADTSHeader2Packet(byte[] packet, int packetLen, int aacSamplerate) {
+    private void addADTSHeader2Packet(byte[] packet, int packetLen, int sampleRate) {
         int profile = 2; // AAC LC
-        int freqIdx = aacSamplerate; // samplerate // 4 <==> 44.1KHz
+        int freqIdx = sampleRate; // samplerate // 4 <==> 44.1KHz
         int chanCfg = 2; // CPE
         packet[0] = (byte) 0xFF; // 0xFFF(12bit) 这里只取了8位，还差4位放到下一个里面
         packet[1] = (byte) 0xF9; // 第一个4bit位放F   1001 = 0x9
@@ -425,8 +437,14 @@ public class WeAudioPlayer {
     }
 
     private void encodePcmToAAC(int size, byte[] buffer) {
-        Log.d(TAG, "input buffer size=" + buffer.length + ", input size=" + size);
+        Log.d(TAG, "input buffer size=" + buffer.length +
+                ", input size=" + size+", audioSamplerate="+audioSamplerate);
         if (buffer != null && encoder != null) {
+            recordTime += size * 1.0 / (audioSamplerate * 2 * (16 / 8));
+            MyLog.d("recordTime = " + recordTime);
+            if (onRecordAacTimeListener != null) {
+                onRecordAacTimeListener.onRecordAacTimeListener((int) recordTime);
+            }
             int inputBufferindex = encoder.dequeueInputBuffer(0);
             if (inputBufferindex >= 0) {
                 ByteBuffer byteBuffer = encoder.getInputBuffers()[inputBufferindex];
@@ -445,7 +463,7 @@ public class WeAudioPlayer {
             }
 
             int index = encoder.dequeueOutputBuffer(bufferInfo, 0);
-            MyLog.d("0 编码..."+index);
+            MyLog.d("0 编码..." + index);
             while (index >= 0) {
                 try {
                     perPcmSize = bufferInfo.size + 7;
@@ -459,13 +477,13 @@ public class WeAudioPlayer {
                     //TODO 设置position
                     byteBuffer.position(bufferInfo.offset);
                     byteBuffer.limit(bufferInfo.offset + bufferInfo.size);
-                    int totalSize= bufferInfo.offset + bufferInfo.size;
+                    int totalSize = bufferInfo.offset + bufferInfo.size;
                     Log.d(TAG, "bufferInfo.offset =" + bufferInfo.offset +
                             ", bufferInfo.offset + bufferInfo.size=" + totalSize);
                     TimeUtil.printByteBufInfo(byteBuffer);
 
                     addADTSHeader2Packet(outByteBuffer, perPcmSize, aacSampleRate);
-                    Log.d(TAG,"after addADTSHeader2Packet");
+                    Log.d(TAG, "after addADTSHeader2Packet");
                     byteBuffer.get(outByteBuffer, 7, bufferInfo.size);
                     TimeUtil.printByteBufInfo(byteBuffer);
                     byteBuffer.position(bufferInfo.offset);
@@ -477,7 +495,7 @@ public class WeAudioPlayer {
 
                     //TODO 继续下一帧处理，从输出队列中取出处理后数据
                     index = encoder.dequeueOutputBuffer(bufferInfo, 0);
-                    MyLog.d("编码..."+index);
+                    MyLog.d("编码..." + index);
 
                 } catch (IOException e) {
                     e.printStackTrace();

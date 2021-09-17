@@ -26,6 +26,7 @@ import com.peter.myplayer.listener.MyOnLoadListener;
 import com.peter.myplayer.listener.MyOnPauseResumeListener;
 import com.peter.myplayer.listener.MyOnTimeInfoListener;
 import com.peter.myplayer.listener.OnPreparedListener;
+import com.peter.myplayer.listener.OnRecordAacTimeListener;
 import com.peter.myplayer.listener.OnVolumeDBListener;
 import com.peter.myplayer.player.WeAudioPlayer;
 import com.peter.myplayer.utils.MuteEnum;
@@ -135,6 +136,12 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        wePlayer.setOnRecordAacTimeListener(new OnRecordAacTimeListener() {
+            @Override
+            public void onRecordAacTimeListener(int recordTime) {
+                Log.d(TAG,"record aac time="+recordTime);
+            }
+        });
         seekBarSeek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
