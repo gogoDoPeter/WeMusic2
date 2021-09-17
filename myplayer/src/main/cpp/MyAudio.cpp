@@ -54,6 +54,12 @@ int MyAudio::resampleAudio(void **ppPcmbuf)
 //    LOGE("MyAudio::resampleAudio +");
     while (playStatus != NULL && !playStatus->exit)
     {
+        if(playStatus->seekStatus)
+        {
+            av_usleep(1000 * 100);//TODO sleep 100ms for CPU using
+            continue;
+        }
+
         if (queue->getQueueSize() == 0)//加载中
         {
             if (!playStatus->load)
@@ -61,6 +67,7 @@ int MyAudio::resampleAudio(void **ppPcmbuf)
                 playStatus->load = true;
                 callJava->onCallLoadStatus(CHILD_THREAD, true);
             }
+            av_usleep(1000 * 100);//TODO sleep 100ms for CPU using
             continue;
         }
         else

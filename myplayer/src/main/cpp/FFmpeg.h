@@ -45,7 +45,7 @@ public:
 
     void decodeFFmpegThread();
 
-    void start();
+    void startDecode();
     void pause();
     void resume();
 

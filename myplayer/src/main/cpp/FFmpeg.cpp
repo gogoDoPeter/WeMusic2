@@ -179,7 +179,7 @@ void FFmpeg::decodeFFmpegThread() {
     LOGE("decodeFFmpegThread -");
 }
 
-void FFmpeg::start() {
+void FFmpeg::startDecode() {
     LOGE("FFmpeg start +");
     if (audio == NULL) {
         if (LOG_DEBUG) {
@@ -187,14 +187,16 @@ void FFmpeg::start() {
             return;
         }
     }
-    audio->play();
+    audio->play();//do what?
 
     while (playStatus != NULL && !playStatus->exit) {
         if (playStatus->seekStatus) {
+            av_usleep(1000 * 100);//TODO sleep 100ms for CPU using
             continue;
         }
-        //TODO why?
-        if (audio->queue->getQueueSize() > 40) {
+        //TODO 如果解码太快，让他sleep等一下
+        if (audio->queue->getQueueSize() > 100) {
+            av_usleep(1000 * 100);//TODO sleep 100ms for CPU using
             continue;
         }
 
@@ -210,8 +212,12 @@ void FFmpeg::start() {
         } else {
             av_packet_free(&avPacket);
             av_free(avPacket);
+
             while (playStatus != NULL && !playStatus->exit) {
+                //TODO 全部解码完成，但是音频还没播完，还有一些剩余帧等着播放
                 if (audio->queue->getQueueSize() > 0) {
+                    LOGD("audio->queue->getQueueSize() = %d",audio->queue->getQueueSize());
+                    av_usleep(1000 * 100);//TODO sleep 100ms for CPU using
                     continue;
                 } else {
 //                    playStatus->exit = true;  //TODO save this will crash

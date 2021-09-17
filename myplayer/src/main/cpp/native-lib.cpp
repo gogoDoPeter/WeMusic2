@@ -26,7 +26,7 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void *reserved) {
 
 void *myStartCallback(void *data) {
     FFmpeg *fFmpeg = static_cast<FFmpeg *>(data);//WlFFmpeg *fFmpeg = (WlFFmpeg *) data;
-    fFmpeg->start();
+    fFmpeg->startDecode();
     pthread_exit(&thread_start);
 }
 
