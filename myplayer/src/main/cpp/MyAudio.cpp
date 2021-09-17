@@ -78,28 +78,36 @@ int MyAudio::resampleAudio(void **ppPcmbuf)
                 callJava->onCallLoadStatus(CHILD_THREAD, false);
             }
         }
-        avPacket = av_packet_alloc();
-        if (queue->getAvpacket(avPacket) != 0)
-        {
-            av_packet_free(&avPacket);
-            av_free(avPacket);
-            avPacket = NULL;
-            continue;
-        }
+        //TODO .ape音乐解码出来的AVPacket里面包含多个AVFrame, 兼容办法；循环获取AVFrame，直到读取完
+        if(isReadFrameFinished){
+            avPacket = av_packet_alloc();
+            if (queue->getAvpacket(avPacket) != 0)
+            {
+                av_packet_free(&avPacket);
+                av_free(avPacket);
+                avPacket = NULL;
+                continue;
+            }
 //        LOGE("MyAudio::resampleAudio avcodec_send_packet");
-        ret = avcodec_send_packet(avCodecContext, avPacket);
-        if (ret != 0)
-        {
-            av_packet_free(&avPacket);
-            av_free(avPacket);
-            avPacket = NULL;
-            continue;
+            ret = avcodec_send_packet(avCodecContext, avPacket);
+            if (ret != 0)
+            {
+                av_packet_free(&avPacket);
+                av_free(avPacket);
+                avPacket = NULL;
+                continue;
+            }
+            countAVPacket++;
+            LOGD("countAVPacket number, 第 %d 帧AVPacket",countAVPacket);
         }
 //        LOGE("MyAudio::resampleAudio avcodec_receive_frame");
         avFrame = av_frame_alloc();
         ret = avcodec_receive_frame(avCodecContext, avFrame);
         if (ret == 0)
         {
+            countAVFrame++;
+            LOGD("countAVFrame number, 第 %d countAVFrame",countAVFrame);
+            isReadFrameFinished = false;
 //            LOGE("MyAudio::resampleAudio avcodec_receive_frame ret:%d",ret);
             if (avFrame->channels > 0 && avFrame->channel_layout == 0)
             {//TODO Why?
@@ -132,6 +140,7 @@ int MyAudio::resampleAudio(void **ppPcmbuf)
                 av_free(avFrame);
                 avFrame = NULL;
                 swr_free(&swr_ctx);
+                isReadFrameFinished = true;
                 continue;
             }
 
@@ -173,6 +182,7 @@ int MyAudio::resampleAudio(void **ppPcmbuf)
         }
         else
         {
+            isReadFrameFinished = true;
             LOGE("avcodec_receive_frame fail, ret:%d", ret);
             av_packet_free(&avPacket);
             av_free(avPacket);

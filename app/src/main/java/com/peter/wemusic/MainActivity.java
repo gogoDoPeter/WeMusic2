@@ -61,7 +61,6 @@ public class MainActivity extends AppCompatActivity {
         seekBarSeek = findViewById(R.id.seekbar_seek);
         seekBarVolume = findViewById(R.id.seekbar_volume);
 
-
         checkPermission();
 
         wePlayer = new WeAudioPlayer();
@@ -193,11 +192,11 @@ public class MainActivity extends AppCompatActivity {
         Log.d(TAG, "onCreate -");
     }
 
-
     public void begin(View view) {
         Log.d(TAG, "do button +");
 //        wePlayer.setSource("http://mpge.5nd.com/2015/2015-11-26/69708/1.mp3");
-        wePlayer.setSource("/sdcard/Music/周杰伦-回到过去.mp3");
+//        wePlayer.setSource("/sdcard/Music/周杰伦-回到过去.mp3");
+        wePlayer.setSource("/sdcard/extra_high.Linear48St.ape");
 //        wePlayer.setSource("/mnt/sdcard/1mydream.mp3");
 
         wePlayer.prepared();

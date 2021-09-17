@@ -78,6 +78,11 @@ public:
     double pitch = 1.0;
 
     bool isRecordPcm=false;
+
+    bool isReadFrameFinished = true;
+
+    int countAVPacket = 0;
+    int countAVFrame = 0;
 public:
     MyAudio(PlayStatus *playStatus, int sample_rate, CallJava *callJava_);
 

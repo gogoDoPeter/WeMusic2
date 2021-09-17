@@ -49,6 +49,7 @@ int avformat_callback(void *ctx) {
     return 0;
 }
 
+//TODO 解封装
 void FFmpeg::decodeFFmpegThread() {
     LOGE("decodeFFmpegThread + :%s", source);
 
@@ -179,6 +180,7 @@ void FFmpeg::decodeFFmpegThread() {
     LOGE("decodeFFmpegThread -");
 }
 
+//TODO 解码
 void FFmpeg::startDecode() {
     LOGE("FFmpeg start +");
     if (audio == NULL) {
@@ -195,7 +197,7 @@ void FFmpeg::startDecode() {
             continue;
         }
         //TODO 如果解码太快，让他sleep等一下
-        if (audio->queue->getQueueSize() > 100) {
+        if (audio->queue->getQueueSize() > 30) { //考虑ape格式文件
             av_usleep(1000 * 100);//TODO sleep 100ms for CPU using
             continue;
         }
@@ -333,6 +335,9 @@ void FFmpeg::seek(int64_t seconds) {
             audio->last_time = 0;
             pthread_mutex_lock(&seek_mutex);
             int64_t realTime = seconds * AV_TIME_BASE;
+            //TODO 由于一个AVPacket里面有多个AVFrame，当seek时，FFmpeg解码器中还残留
+            //     AVFrame，所以会导致seek后，不能立即播放当前音乐,需要做下 avcodec_flush_buffers 来清除FFmpeg解码器中残留的AVFrame
+            avcodec_flush_buffers(audio->avCodecContext);
             avformat_seek_file(pFormatCtx, -1, INT64_MIN, realTime, INT64_MAX, 0);
             pthread_mutex_unlock(&seek_mutex);
             playStatus->seekStatus = false;
