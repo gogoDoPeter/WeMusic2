@@ -435,6 +435,9 @@ void MyAudio::release()
         pcmPlayerObject = nullptr;
         pcmPlayerPlay = nullptr;
         pcmBufferQueue = nullptr;
+
+        pcmMutePlay= nullptr;
+        pcmVolumePlay= nullptr;
     }
     if (outputMixObject != nullptr)
     {
@@ -454,6 +457,21 @@ void MyAudio::release()
     {
         av_free(buffer);//free(buffer);
         buffer = nullptr;
+    }
+    //TODO import
+    if(out_buffer != nullptr)
+    {
+        out_buffer = nullptr;
+    }
+    if(soundTouch == nullptr)
+    {
+        delete soundTouch;
+        soundTouch = nullptr;
+    }
+    if(sampleBuffer != nullptr)
+    {
+        free(sampleBuffer);
+        sampleBuffer = nullptr;
     }
 
     if (avCodecContext != nullptr)
