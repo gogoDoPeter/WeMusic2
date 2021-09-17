@@ -357,3 +357,19 @@ void FFmpeg::setPitch(double pitch) {
         audio->setPitch(pitch);
     }
 }
+
+int FFmpeg::getAudioSampleRate()
+{
+    if(audio != nullptr)
+    {
+        return audio->avCodecContext->sample_rate;
+    }
+    return 0;
+}
+
+void FFmpeg::startRecord(bool start)
+{
+    if(audio!= nullptr){
+        audio->startStopRecord(start);
+    }
+}

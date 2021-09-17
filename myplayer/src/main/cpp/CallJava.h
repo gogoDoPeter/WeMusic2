@@ -23,6 +23,7 @@ public:
     jmethodID jmid_errormsg;
     jmethodID jmid_complete;
     jmethodID jmid_volumeDb;
+    jmethodID jmid_encodepcmdata;
 public:
     CallJava(_JavaVM *javaVm, JNIEnv *env, jobject *obj);
 
@@ -34,6 +35,8 @@ public:
     void onCallErrorMsg(int type, int code, char *msg);
     void onCallComplete(int type);
     void onCallVolumeDb(int type, int dbValue);
+    void onCallEncodePCM2AAC(int type, int size, void *buffer);
+
 };
 
 

@@ -30,7 +30,9 @@ import com.peter.myplayer.listener.OnVolumeDBListener;
 import com.peter.myplayer.player.WeAudioPlayer;
 import com.peter.myplayer.utils.MuteEnum;
 import com.peter.myplayer.utils.MyLog;
-import com.peter.myplayer.utils.MyTimeUtil;
+import com.peter.myplayer.utils.TimeUtil;
+
+import java.io.File;
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "my_tag_" + MainActivity.class.getSimpleName();
@@ -129,7 +131,7 @@ public class MainActivity extends AppCompatActivity {
         wePlayer.setOnVolumeDBListener(new OnVolumeDBListener() {
             @Override
             public void onVolumeDbValue(int dbValue) {
-                Log.d(TAG,"get db="+dbValue);
+//                Log.d(TAG,"get db="+dbValue);
             }
         });
 
@@ -187,8 +189,8 @@ public class MainActivity extends AppCompatActivity {
 
     public void begin(View view) {
         Log.d(TAG, "do button +");
-        wePlayer.setSource("http://mpge.5nd.com/2015/2015-11-26/69708/1.mp3");
-
+//        wePlayer.setSource("http://mpge.5nd.com/2015/2015-11-26/69708/1.mp3");
+        wePlayer.setSource("/sdcard/Music/周杰伦-回到过去.mp3");
 //        wePlayer.setSource("/mnt/sdcard/1mydream.mp3");
 
         wePlayer.prepared();
@@ -210,8 +212,8 @@ public class MainActivity extends AppCompatActivity {
             if (msg.what == 1) {
                 if (!isSeekProcessBar) {
                     TimeInfoBean timeBean = (TimeInfoBean) msg.obj;
-                    tv_time.setText(MyTimeUtil.secdsToDateFormat(timeBean.getTotalTime(), timeBean.getTotalTime())
-                            + "/" + MyTimeUtil.secdsToDateFormat(timeBean.getCurrentTime(), timeBean.getTotalTime()));
+                    tv_time.setText(TimeUtil.secdsToDateFormat(timeBean.getTotalTime(), timeBean.getTotalTime())
+                            + "/" + TimeUtil.secdsToDateFormat(timeBean.getCurrentTime(), timeBean.getTotalTime()));
 //                    Log.d(TAG, "seekBarSeek.setProgress");
                     seekBarSeek.setProgress(timeBean.getCurrentTime() * 100 / timeBean.getTotalTime());
 //                    Log.d(TAG, "seekBarSeek.setProgress, progress:"+timeBean.getCurrentTime() * 100 / timeBean.getTotalTime());
@@ -301,5 +303,21 @@ public class MainActivity extends AppCompatActivity {
     public void normalspeedpitch(View view) {
         wePlayer.setSpeed(1.0);
         wePlayer.setPitch(1.0);
+    }
+
+    public void start_record(View view) {
+        wePlayer.startRecord(new File("/sdcard/aamusicrecord-1.aac"));
+    }
+
+    public void pause_record(View view) {
+        wePlayer.pauseRecord();
+    }
+
+    public void goon_record(View view) {
+        wePlayer.goonRecord();
+    }
+
+    public void stop_record(View view) {
+        wePlayer.stopRecord();
     }
 }

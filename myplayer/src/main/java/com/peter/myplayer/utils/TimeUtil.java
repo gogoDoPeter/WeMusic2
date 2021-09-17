@@ -1,6 +1,19 @@
 package com.peter.myplayer.utils;
 
-public class MyTimeUtil {
+import android.util.Log;
+
+import java.nio.ByteBuffer;
+
+public class TimeUtil {
+    private static final String TAG = "WlTimeUtil";
+
+    public static void printByteBufInfo(ByteBuffer buffer) {
+        Log.d(TAG, "position:" + buffer.position() + ", limit:"
+                + buffer.limit() + ", capacity:"
+                + buffer.capacity());
+    }
+
+
     /**
      * format times
      * @param secds

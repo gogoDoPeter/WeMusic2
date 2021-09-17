@@ -30,7 +30,7 @@ public:
     pthread_mutex_t init_mutex;
     bool exitFfmpeg = false;
 
-    char errMsg[40];
+    char errMsg[120];
 
     int duration = 0;
     pthread_mutex_t seek_mutex;
@@ -59,6 +59,10 @@ public:
     void setSpeed(double speed);
 
     void setPitch(double pitch);
+
+    int getAudioSampleRate();
+
+    void startRecord(bool start);
 };
 
 

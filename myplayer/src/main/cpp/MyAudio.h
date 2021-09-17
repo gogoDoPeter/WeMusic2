@@ -76,6 +76,7 @@ public:
     double speed = 1.0;
     double pitch = 1.0;
 
+    bool isRecordPcm=false;
 public:
     MyAudio(PlayStatus *playStatus, int sample_rate, CallJava *callJava_);
 
@@ -103,6 +104,8 @@ public:
     void setPitch(double pitch_);
     void setSpeed(double speed_);
     int getPcmDb(char * pcmData, size_t pcmSize);
+
+    void startStopRecord(bool startRecord);
 };
 
 

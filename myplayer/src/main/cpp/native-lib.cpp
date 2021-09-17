@@ -163,3 +163,22 @@ Java_com_peter_myplayer_player_WeAudioPlayer_nativeSetPitch(JNIEnv *env, jobject
         fFmpeg->setPitch(pitch);
     }
 }
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_com_peter_myplayer_player_WeAudioPlayer_nativeGetSampleRate(JNIEnv *env, jobject thiz)
+{
+    if(fFmpeg!= nullptr){
+        return fFmpeg->getAudioSampleRate();
+    }
+    return 0;
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_peter_myplayer_player_WeAudioPlayer_nativeStartStopRecord(JNIEnv *env, jobject thiz, jboolean b_start_record)
+{
+    if(fFmpeg!= nullptr){
+        fFmpeg->startRecord(b_start_record);
+    }
+}
