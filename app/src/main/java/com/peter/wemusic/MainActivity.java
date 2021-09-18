@@ -24,7 +24,7 @@ import com.peter.myplayer.listener.MyOnCompleteListener;
 import com.peter.myplayer.listener.MyOnErrorListener;
 import com.peter.myplayer.listener.MyOnLoadListener;
 import com.peter.myplayer.listener.MyOnPauseResumeListener;
-import com.peter.myplayer.listener.MyOnTimeInfoListener;
+import com.peter.myplayer.listener.OnTimeInfoListener;
 import com.peter.myplayer.listener.OnPreparedListener;
 import com.peter.myplayer.listener.OnRecordAacTimeListener;
 import com.peter.myplayer.listener.OnVolumeDBListener;
@@ -103,7 +103,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        wePlayer.setOnTimeInfoListener(new MyOnTimeInfoListener() {
+        wePlayer.setOnTimeInfoListener(new OnTimeInfoListener() {
             @Override
             public void onTimeInfo(TimeInfoBean timeInfoBean) {
 //                MyLog.d(timeInfoBean.toString());
@@ -195,8 +195,8 @@ public class MainActivity extends AppCompatActivity {
     public void begin(View view) {
         Log.d(TAG, "do button +");
 //        wePlayer.setSource("http://mpge.5nd.com/2015/2015-11-26/69708/1.mp3");
-//        wePlayer.setSource("/sdcard/Music/周杰伦-回到过去.mp3");
-        wePlayer.setSource("/sdcard/extra_high.Linear48St.ape");
+        wePlayer.setSource("/sdcard/Music/周杰伦-回到过去.mp3");
+//        wePlayer.setSource("/sdcard/extra_high.Linear48St.ape");
 //        wePlayer.setSource("/mnt/sdcard/1mydream.mp3");
 
         wePlayer.prepared();

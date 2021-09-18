@@ -4,13 +4,15 @@
 
 #include "FFmpeg.h"
 
-static int getCurrentTime() {
+static int getCurrentTime()
+{
     struct timeval t;
     gettimeofday(&t, nullptr);
     return static_cast<int>(t.tv_sec * 1000 + t.tv_usec / 1000);
 }
 
-FFmpeg::FFmpeg(const char *source, CallJava *callJava_, PlayStatus *playStatus_) {
+FFmpeg::FFmpeg(const char *source, CallJava *callJava_, PlayStatus *playStatus_)
+{
     this->source = source;
     this->callJava = callJava_;
     this->playStatus = playStatus_;
@@ -20,40 +22,47 @@ FFmpeg::FFmpeg(const char *source, CallJava *callJava_, PlayStatus *playStatus_)
     pthread_mutex_init(&seek_mutex, nullptr);
 }
 
-FFmpeg::~FFmpeg() {
+FFmpeg::~FFmpeg()
+{
     pthread_mutex_destroy(&init_mutex);
     pthread_mutex_destroy((&seek_mutex));
 }
 
-void *decodeFFmpegRun(void *data) {
+//todo 打开文件，做好准备，给上层回调结果
+void *decodeFFmpegRun(void *data)
+{
     LOGE("decodeFFmpegRun +");
     FFmpeg *pFfmpeg = static_cast<FFmpeg *>(data);
-    pFfmpeg->decodeFFmpegThread();
+    pFfmpeg->prepareDecodeThread();
 
     LOGE("decodeFFmpegRun -");
 //    return nullptr;
     pthread_exit(&pFfmpeg->decodeThread);//pthread_exit 和 return 0 有什么区别？
 }
 
-void FFmpeg::prepared() {
+void FFmpeg::prepared()
+{
     LOGE("prepared +");
     pthread_create(&decodeThread, 0, decodeFFmpegRun, this);
     LOGE("prepared -");
 }
 
-int avformat_callback(void *ctx) {
+int avformat_callback(void *ctx)
+{
     FFmpeg *fFmpeg = (FFmpeg *) ctx;
-    if (fFmpeg->playStatus->exit) {
+    if (fFmpeg->playStatus->exit)
+    {
         return AVERROR_EOF;
     }
     return 0;
 }
 
-//TODO 解封装
-void FFmpeg::decodeFFmpegThread() {
-    LOGE("decodeFFmpegThread + :%s", source);
+//TODO 完成打开文件，准备好开始做解封装
+void FFmpeg::prepareDecodeThread()
+{
+    LOGE("prepareDecodeThread + :%s", source);
 
-    av_register_all();
+    av_register_all();//TODO 4.2.0废弃，可以不设置照常用
     avformat_network_init();
     pFormatCtx = avformat_alloc_context();
 
@@ -62,13 +71,16 @@ void FFmpeg::decodeFFmpegThread() {
 
     int now_time = getCurrentTime();
 
-    LOGE("decodeFFmpegThread 1 avformat_open_input, :%s", source);
+    LOGE("prepareDecodeThread 1 avformat_open_input, :%s", source);
     int retVal = avformat_open_input(&pFormatCtx, source, NULL, NULL);
-    if (retVal != 0) {
-        if (LOG_DEBUG) {
+    if (retVal != 0)
+    {
+        if (LOG_DEBUG)
+        {
             LOGE("can not open source :%s, errcode:%d", source, retVal);
         }
-        if (callJava) {
+        if (callJava)
+        {
             sprintf(errMsg, "can not open source:%s, errcode:%d", source, retVal);
             callJava->onCallErrorMsg(CHILD_THREAD,
                                      ERROR_CODE_AVFORMAT_OPEN_FAIL, errMsg);
@@ -77,13 +89,16 @@ void FFmpeg::decodeFFmpegThread() {
         pthread_mutex_unlock(&init_mutex);
         return;
     }
-    LOGE("decodeFFmpegThread 2, avformat_find_stream_info");
+    LOGE("prepareDecodeThread 2, avformat_find_stream_info");
     retVal = avformat_find_stream_info(pFormatCtx, NULL);
-    if (retVal < 0) {
-        if (LOG_DEBUG) {
+    if (retVal < 0)
+    {
+        if (LOG_DEBUG)
+        {
             LOGE("can not find streams from %s, errcode:%d", source, retVal);
         }
-        if (callJava) {
+        if (callJava)
+        {
             sprintf(errMsg, "can not find streams from %s, errcode:%d", source, retVal);
             callJava->onCallErrorMsg(CHILD_THREAD,
                                      ERROR_CODE_AVFORMAT_FIND_STREAM_INFO, errMsg);
@@ -92,11 +107,13 @@ void FFmpeg::decodeFFmpegThread() {
         pthread_mutex_unlock(&init_mutex);
         return;
     }
-    LOGE("decodeFFmpegThread 3, pFormatCtx->nb_streams:%d", pFormatCtx->nb_streams);
-    for (int i = 0; i < pFormatCtx->nb_streams; i++) {
+    LOGE("prepareDecodeThread 3, pFormatCtx->nb_streams:%d", pFormatCtx->nb_streams);
+    for (int i = 0; i < pFormatCtx->nb_streams; i++)
+    {
         if (pFormatCtx->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_AUDIO)//得到音频流
         {
-            if (audio == NULL) {
+            if (audio == NULL)
+            {
                 audio = new MyAudio(playStatus, pFormatCtx->streams[i]->codecpar->sample_rate,
                                     callJava);
                 audio->streamIndex = i;
@@ -104,16 +121,23 @@ void FFmpeg::decodeFFmpegThread() {
                 audio->duration = pFormatCtx->duration / AV_TIME_BASE;
                 audio->time_base = pFormatCtx->streams[i]->time_base;
                 duration = audio->duration;
+                if(callJava){
+                    callJava->onCallPcmSampleRate(CHILD_THREAD,audio->sample_rate,
+                                                  pFormatCtx->streams[i]->codecpar->channels);
+                }
             }
         }
     }
-    LOGE("decodeFFmpegThread 4, avcodec_find_decoder");
+    LOGE("prepareDecodeThread 4, avcodec_find_decoder");
     AVCodec *dec = avcodec_find_decoder(audio->avCodecParameters->codec_id);
-    if (!dec) {
-        if (LOG_DEBUG) {
+    if (!dec)
+    {
+        if (LOG_DEBUG)
+        {
             LOGE("can not find decoder");
         }
-        if (callJava) {
+        if (callJava)
+        {
             sprintf(errMsg, "can not find decoder");
             callJava->onCallErrorMsg(CHILD_THREAD,
                                      ERROR_CODE_AVFORMAT_FIND_DECODER, errMsg);
@@ -122,13 +146,16 @@ void FFmpeg::decodeFFmpegThread() {
         pthread_mutex_unlock(&init_mutex);
         return;
     }
-    LOGE("decodeFFmpegThread 5, avcodec_alloc_context3");
+    LOGE("prepareDecodeThread 5, avcodec_alloc_context3");
     audio->avCodecContext = avcodec_alloc_context3(dec);
-    if (!audio->avCodecContext) {
-        if (LOG_DEBUG) {
+    if (!audio->avCodecContext)
+    {
+        if (LOG_DEBUG)
+        {
             LOGE("can not alloc new decodecctx");
         }
-        if (callJava) {
+        if (callJava)
+        {
             sprintf(errMsg, "can not alloc new decodecctx");
             callJava->onCallErrorMsg(CHILD_THREAD,
                                      ERROR_CODE_AVCODEC_ALLOC_CONTEXT, errMsg);
@@ -137,12 +164,15 @@ void FFmpeg::decodeFFmpegThread() {
         pthread_mutex_unlock(&init_mutex);
         return;
     }
-    LOGE("decodeFFmpegThread 6, avcodec_parameters_to_context");
-    if (avcodec_parameters_to_context(audio->avCodecContext, audio->avCodecParameters) < 0) {
-        if (LOG_DEBUG) {
+    LOGE("prepareDecodeThread 6, avcodec_parameters_to_context");
+    if (avcodec_parameters_to_context(audio->avCodecContext, audio->avCodecParameters) < 0)
+    {
+        if (LOG_DEBUG)
+        {
             LOGE("can not fill decodecctx");
         }
-        if (callJava) {
+        if (callJava)
+        {
             sprintf(errMsg, "can not fill decodecct");
             callJava->onCallErrorMsg(CHILD_THREAD,
                                      ERROR_CODE_AVCODEC_PARAM_TO_CONTEXT, errMsg);
@@ -151,13 +181,16 @@ void FFmpeg::decodeFFmpegThread() {
         pthread_mutex_unlock(&init_mutex);
         return;
     }
-    LOGE("decodeFFmpegThread 7, avcodec_open2");
+    LOGE("prepareDecodeThread 7, avcodec_open2");
     retVal = avcodec_open2(audio->avCodecContext, dec, 0);
-    if (retVal != 0) {
-        if (LOG_DEBUG) {
+    if (retVal != 0)
+    {
+        if (LOG_DEBUG)
+        {
             LOGE("cant not open audio streams, errcode:%d", retVal);
         }
-        if (callJava) {
+        if (callJava)
+        {
             sprintf(errMsg, "cant not open audio streams, errcode:%d", retVal);
             callJava->onCallErrorMsg(CHILD_THREAD,
                                      ERROR_CODE_AVCODEC_OPEN, errMsg);
@@ -168,60 +201,81 @@ void FFmpeg::decodeFFmpegThread() {
     }
 
     LOGD("Open audio streams success, decode ffmpeg costTime:%d", getCurrentTime() - now_time);
-    if (callJava != nullptr) {
-        if (playStatus != nullptr && !playStatus->exit) {
+    if (callJava != nullptr)
+    {
+        if (playStatus != nullptr && !playStatus->exit)
+        {
             callJava->onCallPrepared(CHILD_THREAD);
-        } else {
+        }
+        else
+        {
             exitFfmpeg = true;//TODO Why? if playstatus->exit is true,then set exit to true
         }
     }
 
     pthread_mutex_unlock(&init_mutex);
-    LOGE("decodeFFmpegThread -");
+    LOGE("prepareDecodeThread -");
 }
 
-//TODO 解码
-void FFmpeg::startDecode() {
+//TODO 开始解码，把解码好的数据（Avpacket）放到audio->queue中  audio->queue->putAvpacket(avPacket)
+void FFmpeg::startDecode()
+{
     LOGE("FFmpeg start +");
-    if (audio == NULL) {
-        if (LOG_DEBUG) {
+    if (audio == NULL)
+    {
+        if (LOG_DEBUG)
+        {
             LOGE("audio is null");
             return;
         }
     }
     audio->play();//do what?
-
-    while (playStatus != NULL && !playStatus->exit) {
-        if (playStatus->seekStatus) {
+    int count = 0;
+    while (playStatus != NULL && !playStatus->exit)
+    {
+        if (playStatus->seekStatus)
+        {
             av_usleep(1000 * 100);//TODO sleep 100ms for CPU using
             continue;
         }
         //TODO 如果解码太快，让他sleep等一下
-        if (audio->queue->getQueueSize() > 30) { //考虑ape格式文件
+        if (audio->queue->getQueueSize() > 30)
+        { //考虑ape格式文件  wanli set 40
             av_usleep(1000 * 100);//TODO sleep 100ms for CPU using
             continue;
         }
 
         AVPacket *avPacket = av_packet_alloc();
-        if (av_read_frame(pFormatCtx, avPacket) == 0) {
+        if (av_read_frame(pFormatCtx, avPacket) == 0)
+        {
             if (avPacket->stream_index == audio->streamIndex)//index 0 is Audio, 1 is video
             {
+                count++;
+                LOGE("ffmpeg decode avpacket, 解码第 %d 帧", count);
                 audio->queue->putAvpacket(avPacket);
-            } else {
+            }
+            else
+            {
                 av_packet_free(&avPacket);
                 av_free(avPacket);
             }
-        } else {
+        }
+        else
+        {
             av_packet_free(&avPacket);
             av_free(avPacket);
 
-            while (playStatus != NULL && !playStatus->exit) {
+            while (playStatus != NULL && !playStatus->exit)
+            {
                 //TODO 全部解码完成，但是音频还没播完，还有一些剩余帧等着播放
-                if (audio->queue->getQueueSize() > 0) {
-                    LOGD("audio->queue->getQueueSize() = %d",audio->queue->getQueueSize());
+                if (audio->queue->getQueueSize() > 0)
+                {
+                    LOGD("audio->queue->getQueueSize() = %d", audio->queue->getQueueSize());
                     av_usleep(1000 * 100);//TODO sleep 100ms for CPU using
                     continue;
-                } else {
+                }
+                else
+                {
 //                    playStatus->exit = true;  //TODO save this will crash
                     break;
                 }
@@ -230,7 +284,13 @@ void FFmpeg::startDecode() {
         }
     }
     exitFfmpeg = true;
-    if (callJava != nullptr) {
+    if (audio != nullptr)
+    {
+        audio->isCut = false;
+    }
+
+    if (callJava != nullptr)
+    {
         callJava->onCallComplete(CHILD_THREAD);
     }
     //模拟出队
@@ -242,33 +302,42 @@ void FFmpeg::startDecode() {
         av_free(packet);
         packet = NULL;
     }*/
-    if (LOG_DEBUG) {
+    if (LOG_DEBUG)
+    {
         LOGD("解码完成");
     }
     LOGE("FFmpeg start -");
 }
 
-void FFmpeg::pause() {
-    if (audio != nullptr) {
+void FFmpeg::pause()
+{
+    if (audio != nullptr)
+    {
         audio->pause();
     }
 }
 
-void FFmpeg::resume() {
-    if (audio != nullptr) {
+void FFmpeg::resume()
+{
+    if (audio != nullptr)
+    {
         audio->resume();
     }
 }
 
-void FFmpeg::release() {
-    if (LOG_DEBUG) {
+void FFmpeg::release()
+{
+    if (LOG_DEBUG)
+    {
         LOGE("开始释放Ffmpeg");
     }
-    if (playStatus->exit) {
+    if (playStatus->exit)
+    {
         return;
     }
 
-    if (LOG_DEBUG) {
+    if (LOG_DEBUG)
+    {
         LOGE("开始释放Ffmpeg2");
     }
     playStatus->exit = true;
@@ -277,58 +346,73 @@ void FFmpeg::release() {
     int sleepCount = 0;
 
     int now_time = getCurrentTime();
-    while (!exitFfmpeg) {
-        if (sleepCount > 1000) {
+    while (!exitFfmpeg)
+    {
+        if (sleepCount > 1000)
+        {
             exitFfmpeg = true;
         }
-        if (LOG_DEBUG) {
+        if (LOG_DEBUG)
+        {
             LOGE("wait ffmpeg  exit, sleepCount:%d", sleepCount);
         }
         sleepCount++;
         av_usleep(1000 * 10);//暂停10毫秒 TODO 用av_usleep()合适？
     }
 
-    if (LOG_DEBUG) {
+    if (LOG_DEBUG)
+    {
         LOGE("释放 Audio, sleep costTime:%d ms", getCurrentTime() - now_time);
     }
 
-    if (audio != NULL) {
+    if (audio != NULL)
+    {
         audio->release();
         delete (audio);
         audio = NULL;
     }
 
-    if (LOG_DEBUG) {
+    if (LOG_DEBUG)
+    {
         LOGE("释放 封装格式上下文");
     }
-    if (pFormatCtx != NULL) {
+    if (pFormatCtx != NULL)
+    {
         avformat_close_input(&pFormatCtx);
         avformat_free_context(pFormatCtx);
         pFormatCtx = NULL;
     }
 
-    if (LOG_DEBUG) {
+    if (LOG_DEBUG)
+    {
         LOGE("释放 callJava");
     }
-    if (callJava != NULL) {
+    if (callJava != NULL)
+    {
         callJava = NULL;
     }
 
-    if (LOG_DEBUG) {
+    if (LOG_DEBUG)
+    {
         LOGE("释放 playStatus");
     }
-    if (playStatus != NULL) {
+    if (playStatus != NULL)
+    {
         playStatus = NULL;
     }
     pthread_mutex_unlock(&init_mutex);
 }
 
-void FFmpeg::seek(int64_t seconds) {
-    if (duration <= 0) {
+void FFmpeg::seek(int64_t seconds)
+{
+    if (duration <= 0)
+    {
         return;
     }
-    if (seconds >= 0 && seconds <= duration) {
-        if (audio != NULL) {
+    if (seconds >= 0 && seconds <= duration)
+    {
+        if (audio != NULL)
+        {
             playStatus->seekStatus = true;
             audio->queue->clearAvpacket();
             audio->clock = 0;
@@ -345,33 +429,41 @@ void FFmpeg::seek(int64_t seconds) {
     }
 }
 
-void FFmpeg::setVolume(int percent) {
-    if (audio != nullptr) {
+void FFmpeg::setVolume(int percent)
+{
+    if (audio != nullptr)
+    {
         audio->setVolume(percent);
     }
 }
 
-void FFmpeg::setMute(int muteType) {
-    if (audio != nullptr) {
+void FFmpeg::setMute(int muteType)
+{
+    if (audio != nullptr)
+    {
         audio->setMute(muteType);
     }
 }
 
-void FFmpeg::setSpeed(double speed) {
-    if (audio != nullptr) {
+void FFmpeg::setSpeed(double speed)
+{
+    if (audio != nullptr)
+    {
         audio->setSpeed(speed);
     }
 }
 
-void FFmpeg::setPitch(double pitch) {
-    if (audio != nullptr) {
+void FFmpeg::setPitch(double pitch)
+{
+    if (audio != nullptr)
+    {
         audio->setPitch(pitch);
     }
 }
 
 int FFmpeg::getAudioSampleRate()
 {
-    if(audio != nullptr)
+    if (audio != nullptr)
     {
         return audio->avCodecContext->sample_rate;
     }
@@ -380,7 +472,26 @@ int FFmpeg::getAudioSampleRate()
 
 void FFmpeg::startRecord(bool start)
 {
-    if(audio!= nullptr){
+    if (audio != nullptr)
+    {
         audio->startStopRecord(start);
     }
+}
+
+bool FFmpeg::cutAudioPlay(double startTime, double endTime, bool isShowPcm)
+{
+    if (startTime >= 0 && endTime <= duration && startTime < endTime)
+    {
+        if (audio != nullptr)
+        {
+            audio->isCut = true;
+            audio->endTime = endTime;
+            audio->isShowPcm = isShowPcm;
+            int64_t tempTime = (int64_t) startTime;
+            LOGD("startTime:%lf, tempTime:%ld", startTime, tempTime);
+            seek(tempTime);//这里数据精度有损失，如果想精准，传double类型下来
+            return true;
+        }
+    }
+    return false;
 }

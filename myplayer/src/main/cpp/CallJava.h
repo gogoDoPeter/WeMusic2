@@ -24,6 +24,8 @@ public:
     jmethodID jmid_complete;
     jmethodID jmid_volumeDb;
     jmethodID jmid_encodepcmdata;
+    jmethodID jmid_cut_pcmdata;
+    jmethodID jmid_pcmsamplerate;
 public:
     CallJava(_JavaVM *javaVm, JNIEnv *env, jobject *obj);
 
@@ -36,7 +38,8 @@ public:
     void onCallComplete(int type);
     void onCallVolumeDb(int type, int dbValue);
     void onCallEncodePCM2AAC(int type, int size, void *buffer);
-
+    void onCallCutPcmData(int type, void *buffer, int size);
+    void onCallPcmSampleRate(int type, int sampleRate, int channels);
 };
 
 

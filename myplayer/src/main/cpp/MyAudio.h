@@ -83,6 +83,11 @@ public:
 
     int countAVPacket = 0;
     int countAVFrame = 0;
+
+    bool isCut = false;
+    double endTime = 0;
+    bool isShowPcm = false;//表示是否回调裁剪的pcm数据给app
+
 public:
     MyAudio(PlayStatus *playStatus, int sample_rate, CallJava *callJava_);
 

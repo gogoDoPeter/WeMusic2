@@ -11,7 +11,8 @@ import com.peter.myplayer.listener.MyOnCompleteListener;
 import com.peter.myplayer.listener.MyOnErrorListener;
 import com.peter.myplayer.listener.MyOnLoadListener;
 import com.peter.myplayer.listener.MyOnPauseResumeListener;
-import com.peter.myplayer.listener.MyOnTimeInfoListener;
+import com.peter.myplayer.listener.OnTimeInfoListener;
+import com.peter.myplayer.listener.OnCutPcmDataListener;
 import com.peter.myplayer.listener.OnPreparedListener;
 import com.peter.myplayer.listener.OnRecordAacTimeListener;
 import com.peter.myplayer.listener.OnVolumeDBListener;
@@ -43,11 +44,12 @@ public class WeAudioPlayer {
     private OnPreparedListener onPreparedListener;
     private MyOnLoadListener onLoadListener;
     private MyOnPauseResumeListener onPauseResumeListener;
-    private MyOnTimeInfoListener onTimeInfoListener;
+    private OnTimeInfoListener onTimeInfoListener;
     private MyOnErrorListener onErrorListener;
     private MyOnCompleteListener onCompleteListener;
     private OnVolumeDBListener onVolumeDBListener;
     private OnRecordAacTimeListener onRecordAacTimeListener;
+    private OnCutPcmDataListener onCutPcmDataListener;
 
     private static TimeInfoBean timeInfoBean;
     private static boolean isPlayNext = false;
@@ -102,7 +104,7 @@ public class WeAudioPlayer {
         this.onPauseResumeListener = onPauseResumeListener;
     }
 
-    public void setOnTimeInfoListener(MyOnTimeInfoListener onTimeInfoListener) {
+    public void setOnTimeInfoListener(OnTimeInfoListener onTimeInfoListener) {
         this.onTimeInfoListener = onTimeInfoListener;
     }
 
@@ -120,6 +122,10 @@ public class WeAudioPlayer {
 
     public void setOnRecordAacTimeListener(OnRecordAacTimeListener onRecordAacTimeListener) {
         this.onRecordAacTimeListener = onRecordAacTimeListener;
+    }
+
+    public void setOnCutPcmDataListener(OnCutPcmDataListener onCutPcmDataListener) {
+        this.onCutPcmDataListener = onCutPcmDataListener;
     }
 
     //TODO 为什么这里要开子线程做？  prepare将数据解封装，有延迟动作，需要放在子线程中执行
@@ -226,6 +232,16 @@ public class WeAudioPlayer {
     public void setPitch(double pitch_) {
         this.pitch = pitch_;
         nativeSetPitch(pitch);
+    }
+
+
+    public void cutAudioPlayer(double startTime, double endTime, boolean isShowPcm) {
+        if (nativeCutAudioPlay(startTime, endTime, isShowPcm)) {
+            start();
+        } else {
+            stop();
+            onCallError(2001, "CutAudioPlay params is wrong");
+        }
     }
 
     public void startRecord(File saveFileName) {
@@ -409,16 +425,15 @@ public class WeAudioPlayer {
     }
 
     public void onCallError(int code, String msg) {
-
+        stop();
         if (onErrorListener != null) {
-            stop();
             onErrorListener.onError(code, msg);
         }
     }
 
     public void onCallComplete() {
+        stop();
         if (onCompleteListener != null) {
-            stop();
             onCompleteListener.onComplete();
         }
     }
@@ -436,9 +451,9 @@ public class WeAudioPlayer {
         }
     }
 
-    private void encodePcmToAAC(int size, byte[] buffer) {
+    private void onCallEncodePcmToAAC(int size, byte[] buffer) {
         Log.d(TAG, "input buffer size=" + buffer.length +
-                ", input size=" + size+", audioSamplerate="+audioSamplerate);
+                ", input size=" + size + ", audioSamplerate=" + audioSamplerate);
         if (buffer != null && encoder != null) {
             recordTime += size * 1.0 / (audioSamplerate * 2 * (16 / 8));
             MyLog.d("recordTime = " + recordTime);
@@ -504,6 +519,21 @@ public class WeAudioPlayer {
         }
     }
 
+    private void onCallCutPcmData(byte[] buffer, int size) {
+        if(onCutPcmDataListener != null){
+            onCutPcmDataListener.onCutPcmData(buffer,size);
+        }
+    }
+
+    public void onCallPcmRatesample(int sampleRate, int channels)
+    {
+        if(onCutPcmDataListener != null)
+        {
+            Log.d(TAG,"onCallPcmRatesample channels="+channels);
+            onCutPcmDataListener.onPcmRateSample(sampleRate, 16, channels);
+        }
+    }
+
     private native void native_start();
 
     private native void native_prepared(String source);
@@ -530,5 +560,5 @@ public class WeAudioPlayer {
 
     private native void nativeStartStopRecord(boolean bStartRecord);
 
-
+    private native boolean nativeCutAudioPlay(double startTime, double endTime, boolean isShowPcm);
 }

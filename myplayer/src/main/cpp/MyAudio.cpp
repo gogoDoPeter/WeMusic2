@@ -14,6 +14,10 @@ MyAudio::MyAudio(PlayStatus *playStatus, int sample_rate, CallJava *callJava_)
 
     this->callJava = callJava_;
 
+    isCut=false;
+    endTime=0;
+    isShowPcm= false;
+
     sampleBuffer = static_cast<SAMPLETYPE *>(malloc(sample_rate * 2 * 2));//TODO need release
     soundTouch = new SoundTouch();
     soundTouch->setSampleRate(sample_rate);
@@ -117,7 +121,7 @@ int MyAudio::resampleAudio(void **ppPcmbuf)
             {
                 avFrame->channels = av_get_channel_layout_nb_channels(avFrame->channel_layout);
             }
-
+            LOGE("MyAudio resampleAudio channels:%d, channel_layout:%ld",avFrame->channels,avFrame->channel_layout);
 //            LOGE("swr_alloc_set_opts, ret:%d", ret);
             SwrContext *swr_ctx;
             swr_ctx = swr_alloc_set_opts(
@@ -288,6 +292,21 @@ void pcmBufferCallBack(SLAndroidSimpleBufferQueueItf bf, void *context)
             // 原来这里的size是buffersize（不经过soundtouch处理前设置的值），现在要改为buffersize * 2 * 2，第一个2是双通道，第二个2表示位数
             (*myAudio->pcmBufferQueue)->Enqueue(myAudio->pcmBufferQueue,
                                                 (char *) myAudio->sampleBuffer, bufferSize * 2 * 2);
+
+            if(myAudio->isCut)
+            {
+                if(myAudio->isShowPcm)//TODO 判断是否把裁剪pcm数据段返回app供二次开发使用
+                {
+                    //TODO 回调裁剪PCM数据给APP
+                    myAudio->callJava->onCallCutPcmData(CHILD_THREAD,
+                                                        myAudio->sampleBuffer, bufferSize * 2 * 2);
+                }
+                if(myAudio->clock > myAudio->endTime)
+                {
+                    LOGE("裁剪退出...");
+                    myAudio->playStatus->exit = true;
+                }
+            }
         }
     }
 }

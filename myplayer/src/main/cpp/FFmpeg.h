@@ -36,6 +36,7 @@ public:
     pthread_mutex_t seek_mutex;
 
     pthread_t startThread;
+
 public:
     FFmpeg(const char *source, CallJava *callJava_, PlayStatus *playStatus_);
 
@@ -43,7 +44,7 @@ public:
 
     void prepared();
 
-    void decodeFFmpegThread();
+    void prepareDecodeThread();
 
     void startDecode();
     void pause();
@@ -63,6 +64,8 @@ public:
     int getAudioSampleRate();
 
     void startRecord(bool start);
+
+    bool cutAudioPlay(double startTime, double endTime, bool isShowPcm);
 };
 
 
